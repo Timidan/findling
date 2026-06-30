@@ -1,0 +1,1 @@
+ALTER TABLE "claimable_listings" ADD COLUMN "claim_proof_snapshot" jsonb;

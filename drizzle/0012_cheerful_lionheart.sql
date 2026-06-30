@@ -1,0 +1,1 @@
+ALTER TABLE "claimable_listings" ADD COLUMN "source_thumbnail_url" text;

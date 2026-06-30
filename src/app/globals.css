@@ -1,26 +1,213 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+  Findling brand system — cream / amber / ink.
+  Default theme is LIGHT (cream paper). The cinema (dark) theme is used
+  SCOPED on video surfaces (the Feed, the overlay) by wrapping them in `.dark`.
+
+  Accent rule: --gold (amber) is reserved for paid / earnings / receipt /
+  session-grant / withdrawal states only. It is intentionally NOT mapped to
+  --primary or --accent so it cannot leak into ordinary browsing UI.
+*/
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --radius: 0.625rem;
+
+  --background: #f1ebdd; /* paper */
+  --foreground: #1c1b16; /* ink */
+
+  --card: #fbf8f1; /* surface */
+  --card-foreground: #1c1b16;
+  --popover: #fbf8f1;
+  --popover-foreground: #1c1b16;
+
+  --primary: #1c1b16; /* ink — primary actions (never amber) */
+  --primary-foreground: #fbf8f1;
+
+  --secondary: #e7ddc7;
+  --secondary-foreground: #1c1b16;
+
+  --muted: #e7ddc7;
+  --muted-foreground: #6b6452;
+
+  --accent: #e3e7da; /* sage tint — hover/selection (never amber) */
+  --accent-foreground: #1c1b16;
+
+  --destructive: #b5533b; /* clay */
+  --destructive-foreground: #fbf8f1;
+
+  --border: #e0d8c6; /* line */
+  --input: #e0d8c6;
+  --ring: #6e7a5e; /* sage focus ring */
+
+  /* Findling brand extras */
+  --sage: #6e7a5e;
+  --gold: #d98a2b; /* AMBER — reserved: paid / earnings / receipt only */
+  --gold-foreground: #ffffff;
+  --gold-soft: #f6ecdb;
+}
+
+/* Cinema — dark video surfaces. Scope with a `.dark` wrapper. */
+.dark {
+  --background: #0b0c0e; /* stage */
+  --foreground: #f4f1ea;
+
+  --card: #14130f;
+  --card-foreground: #f4f1ea;
+  --popover: #14130f;
+  --popover-foreground: #f4f1ea;
+
+  --primary: #f4f1ea;
+  --primary-foreground: #0b0c0e;
+
+  --secondary: #1d1e22;
+  --secondary-foreground: #f4f1ea;
+
+  --muted: #1d1e22;
+  --muted-foreground: #a8a39a;
+
+  --accent: #23252b;
+  --accent-foreground: #f4f1ea;
+
+  --destructive: #e06a4f;
+  --destructive-foreground: #0b0c0e;
+
+  --border: rgba(255, 255, 255, 0.14);
+  --input: rgba(255, 255, 255, 0.18);
+  --ring: #6e7a5e;
+
+  --sage: #8a967b;
+  --gold: #d98a2b; /* AMBER — same canonical brand value as light (spec §6) */
+  --gold-foreground: #ffffff;
+  --gold-soft: rgba(217, 138, 43, 0.18);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sage: var(--sage);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-gold-soft: var(--gold-soft);
+
+  --font-display: var(--font-instrument-serif);
+  --font-sans: var(--font-inter-tight);
+  --font-mono: var(--font-spline-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    border-color: var(--border);
+    outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* tabular figures wherever the mono/data font shows numbers */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+/* staggered receipt-row reveal (transform/opacity only) */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Brand mark — "Pull Focus + Play": the film-frame brackets breathe toward the
+   held moment like a lens racking focus, while the play button gently beats as if
+   the moment is playing. Pure CSS (transform-only), so FindlingMark stays a
+   server component everywhere it renders. Visible but premium — never pumping. */
+.mark-bracket {
+  transform-box: view-box;
+  transform-origin: 16px 16px; /* true frame centre, so brackets close inward */
+  animation: mark-pull-focus 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
+}
+.mark-play {
+  transform-box: view-box;
+  transform-origin: 16px 16px;
+  animation: mark-play-beat 2.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes mark-pull-focus {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.92);
+  }
+}
+
+@keyframes mark-play-beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+/* pointer-only: hovering the lockup "locks focus" — frame settles sharp and the
+   held moment nudges into playback (both idle loops pause) */
+@media (hover: hover) {
+  .mark-lockup:hover .mark-bracket,
+  .mark-lockup:focus-visible .mark-bracket {
+    animation-play-state: paused;
+    transform: scale(0.92);
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .mark-lockup:hover .mark-play,
+  .mark-lockup:focus-visible .mark-play {
+    animation-play-state: paused;
+    transform: translateX(1px) scale(1.06);
+    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark-bracket,
+  .mark-play {
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }

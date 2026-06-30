@@ -1,0 +1,97 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1781571047289,
+      "tag": "0000_amusing_dracula",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781583002476,
+      "tag": "0001_greedy_quasar",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781645935265,
+      "tag": "0002_wandering_mimic",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781650485915,
+      "tag": "0003_rainy_hellion",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781652714732,
+      "tag": "0004_yellow_pet_avengers",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781656128765,
+      "tag": "0005_light_magma",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781662276117,
+      "tag": "0006_classy_killraven",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782255013952,
+      "tag": "0007_enable_rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782259256897,
+      "tag": "0008_gray_black_panther",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1782261022157,
+      "tag": "0009_claimable_licence",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1782301211315,
+      "tag": "0010_clever_karen_page",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1782314284620,
+      "tag": "0011_slow_the_hunter",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1782338586532,
+      "tag": "0012_cheerful_lionheart",
+      "breakpoints": true
+    }
+  ]
+}

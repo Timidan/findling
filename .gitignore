@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...but keep the placeholder template the README tells users to copy
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +41,20 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local-only hackathon brief — invite passphrase + internal status, never push
+HACKATHON.md
+
+# third-party hackathon Discord export / scratch — not part of the product
+chats.txt
+
+# internal AI-orchestration planning docs — keep local, not for public judges
+docs/goals/
+docs/superpowers/
+
+# editor / agent tool dirs — machine-local, no product value
+.agents/
+.codex/
+.claude/
+.impeccable/
+.vscode/
