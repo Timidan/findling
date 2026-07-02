@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { EIP1193Provider } from "viem";
-import { Wallet, SignOut, CircleNotch } from "@phosphor-icons/react";
+import { Wallet, SignOut, CircleNotch, ArrowSquareOut, X } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 export type Me = { id: string; address: string | null; displayName: string | null } | null;
 
 const AUTH_ME_TIMEOUT_MS = 8_000;
+type WalletLink = { label: string; href: string };
 
 function shorten(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -17,6 +18,29 @@ function injected(): EIP1193Provider | null {
   if (typeof window === "undefined") return null;
   const eth = (window as unknown as { ethereum?: EIP1193Provider }).ethereum;
   return eth ?? null;
+}
+
+function isMobileBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
+function dappUrlWithoutScheme(url: string): string {
+  const parsed = new URL(url);
+  return `${parsed.host}${parsed.pathname}${parsed.search}${parsed.hash}`;
+}
+
+function mobileWalletLinks(url: string): WalletLink[] {
+  return [
+    {
+      label: "Open in MetaMask",
+      href: `https://link.metamask.io/dapp/${dappUrlWithoutScheme(url)}`,
+    },
+    {
+      label: "Open in Trust Wallet",
+      href: `https://link.trustwallet.com/open_url?coin_id=60&url=${encodeURIComponent(url)}`,
+    },
+  ];
 }
 
 /**
@@ -39,6 +63,8 @@ export function ConnectWallet({
   const [me, setMe] = useState<Me | undefined>(initialUser);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [walletHelpOpen, setWalletHelpOpen] = useState(false);
+  const [walletLinks, setWalletLinks] = useState<WalletLink[]>([]);
   const errorId = useId();
   // Bumped on every sign-in / sign-out. A slow mount revalidation captures the
   // value at fire time and only applies if it hasn't changed since — so a stale
@@ -76,9 +102,16 @@ export function ConnectWallet({
   const signIn = useCallback(async () => {
     gen.current += 1; // this action supersedes any in-flight revalidation
     setError(null);
+    setWalletHelpOpen(false);
     const provider = injected();
     if (!provider) {
-      setError("No wallet found. Install a browser wallet.");
+      const mobile = isMobileBrowser();
+      const message = mobile
+        ? "Open Findling in a wallet browser, then connect again."
+        : "No wallet found. Install a browser wallet.";
+      setError(message);
+      setWalletLinks(mobile && typeof window !== "undefined" ? mobileWalletLinks(window.location.href) : []);
+      setWalletHelpOpen(true);
       return;
     }
     setBusy(true);
@@ -110,6 +143,7 @@ export function ConnectWallet({
       setMe(me.user ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "sign-in failed");
+      setWalletHelpOpen(true);
     } finally {
       setBusy(false);
     }
@@ -185,6 +219,55 @@ export function ConnectWallet({
       <span id={errorId} role="alert" aria-live="assertive" className="sr-only">
         {error ?? ""}
       </span>
+      {walletHelpOpen && (
+        <div
+          role="dialog"
+          aria-live="polite"
+          aria-label="Wallet connection help"
+          className="fixed inset-x-4 bottom-4 z-[80] mx-auto max-w-sm rounded-2xl border border-border bg-card p-4 text-foreground shadow-2xl"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">Wallet needed</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {error ?? "Open this page in a wallet browser, then connect again."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setWalletHelpOpen(false)}
+              aria-label="Close wallet help"
+              className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <X weight="bold" className="size-4" />
+            </button>
+          </div>
+          {walletLinks.length > 0 ? (
+            <div className="mt-3 grid gap-2">
+              {walletLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98]"
+                >
+                  {link.label}
+                  <ArrowSquareOut weight="bold" className="size-4" />
+                </a>
+              ))}
+            </div>
+          ) : (
+            <a
+              href="https://metamask.io/download/"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98]"
+            >
+              Install MetaMask
+              <ArrowSquareOut weight="bold" className="size-4" />
+            </a>
+          )}
+        </div>
+      )}
     </>
   );
 }
