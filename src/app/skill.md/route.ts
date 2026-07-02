@@ -2,6 +2,31 @@ import { type NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+function cleanOrigin(origin: string): string {
+  return origin.replace(/\/+$/, "");
+}
+
+function forwardedValue(value: string | null): string | null {
+  return value?.split(",")[0]?.trim() || null;
+}
+
+function publicOrigin(req: NextRequest): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return cleanOrigin(process.env.NEXT_PUBLIC_APP_URL);
+  }
+
+  const host =
+    forwardedValue(req.headers.get("x-forwarded-host")) ??
+    forwardedValue(req.headers.get("host"));
+  if (!host) return new URL(req.url).origin;
+
+  const proto =
+    forwardedValue(req.headers.get("x-forwarded-proto")) ??
+    (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
+
+  return `${proto}://${host}`;
+}
+
 /**
  * Agent onboarding skill, served as markdown at GET /skill.md. An autonomous
  * agent can `curl https://<host>/skill.md` and learn how to authenticate (with
@@ -9,7 +34,7 @@ export const dynamic = "force-dynamic";
  * and withdraw. The base URL is the live request origin.
  */
 export async function GET(req: NextRequest) {
-  const origin = new URL(req.url).origin;
+  const origin = publicOrigin(req);
   return new Response(skill(origin), {
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",
