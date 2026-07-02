@@ -10,7 +10,7 @@ import { pledgeIntent, getPledgedDemand } from "../src/server/claimable/pledges"
 
 const SEED_FINDER_EMAIL = "peertube-seed@findling.local";
 const BUYER_EMAIL = "loop-buyer@findling.test";
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://findling.timidan.xyz";
 
 async function main() {
   const finder = (

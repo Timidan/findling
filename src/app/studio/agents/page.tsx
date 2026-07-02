@@ -12,9 +12,10 @@ export const dynamic = "force-dynamic";
 export default async function AgentsPage() {
   const userId = await getCurrentUserId();
   const hdrs = await headers();
-  const host = hdrs.get("host") ?? "your-app.com";
-  const proto = hdrs.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const origin = `${proto}://${host}`;
+  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL;
+  const host = hdrs.get("host") ?? "findling.timidan.xyz";
+  const proto = hdrs.get("x-forwarded-proto") ?? "https";
+  const origin = configuredOrigin ?? `${proto}://${host}`;
 
   if (!userId) {
     return (

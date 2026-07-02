@@ -9,7 +9,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { createFindlingMcpServer } from "../src/server/mcp/server";
 
 async function main() {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://findling.timidan.xyz";
   const server = createFindlingMcpServer(baseUrl);
   const transport = new StdioServerTransport();
   await server.connect(transport);

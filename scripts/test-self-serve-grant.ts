@@ -13,7 +13,7 @@ import * as schema from "../src/server/db/schema";
 import { issueAgentKey } from "../src/server/auth/agent-credential";
 import { runAgentSearch, getAgentRun } from "../src/server/agent/agent";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://findling.timidan.xyz";
 const BUYER_EMAIL = "loop-buyer@findling.test";
 
 async function main() {

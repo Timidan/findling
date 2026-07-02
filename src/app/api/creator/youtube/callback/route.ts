@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     url.searchParams.get("state"),
     req.cookies.get(YOUTUBE_OAUTH_STATE_COOKIE)?.value,
   );
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://findling.timidan.xyz";
 
   if (!code || !state) {
     const res = NextResponse.redirect(`${appUrl}/?youtube=error`);

@@ -7,7 +7,7 @@
 import { createSiweMessage } from "viem/siwe";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
 
-const BASE = process.env.BASE ?? "http://localhost:3000";
+const BASE = process.env.BASE ?? "https://findling.timidan.xyz";
 const HOST = new URL(BASE).host;
 
 function jar() {

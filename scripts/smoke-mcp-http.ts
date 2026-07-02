@@ -9,7 +9,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { issueAgentKey } from "../src/server/auth/agent-credential";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://findling.timidan.xyz";
 
 async function main() {
   const sql = postgres(process.env.DATABASE_URL!, { prepare: false });

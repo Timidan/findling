@@ -7,7 +7,7 @@
 import { createHmac } from "node:crypto";
 import postgres from "postgres";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://findling.timidan.xyz";
 const secret = process.env.AUTH_SESSION_SECRET;
 if (!secret) throw new Error("AUTH_SESSION_SECRET missing");
 

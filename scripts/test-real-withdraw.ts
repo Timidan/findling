@@ -12,7 +12,7 @@ import * as schema from "../src/server/db/schema";
 import { issueAgentKey } from "../src/server/auth/agent-credential";
 import { getEarnings } from "../src/server/ledger/earnings";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://findling.timidan.xyz";
 const FINDER_EMAIL = "loop-finder@findling.test";
 
 async function main() {

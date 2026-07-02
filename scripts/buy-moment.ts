@@ -19,7 +19,7 @@ async function main() {
   if (!momentId) throw new Error("usage: buy-moment.ts <momentId>");
   const AGENT_KEY = process.env.AGENT_PRIVATE_KEY as `0x${string}`;
   const AGENT_ADDR = process.env.AGENT_ADDRESS!;
-  const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://findling.timidan.xyz";
   if (!AGENT_KEY || !AGENT_ADDR) throw new Error("AGENT_PRIVATE_KEY/ADDRESS not set");
 
   const sql = postgres(process.env.DATABASE_URL!, { prepare: false });
