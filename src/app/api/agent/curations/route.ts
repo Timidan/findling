@@ -7,6 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { normalizeSubmitCurationCommand } from "@/server/agent/commands";
 import { submitCuration } from "@/server/catalog/curation";
 import { getActor } from "@/server/auth/current-user";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,9 @@ export async function POST(req: NextRequest) {
   if (!actor) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
+
+  const limited = await enforceRateLimit("curation", actor.userId);
+  if (limited) return limited;
 
   const command = normalizeSubmitCurationCommand(await req.json().catch(() => null));
   if (!command.ok) {

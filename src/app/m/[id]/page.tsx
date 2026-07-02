@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SealCheck, Clock, Tag } from "@phosphor-icons/react/dist/ssr";
 import { getMomentDetail } from "@/server/find/moment-detail";
+import { isUuid } from "@/server/http/uuid";
 import { getSessionUser } from "@/server/auth/current-user";
 import { SiteHeader } from "@/components/site/site-header";
 import { LicenseCheckout } from "@/components/find/license-checkout";
@@ -14,7 +15,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const m = await getMomentDetail(id);
+  const m = isUuid(id) ? await getMomentDetail(id) : null;
   return {
     title: m ? `${m.title} · Findling` : "Moment · Findling",
     description: m?.description ?? "License this exact video moment with USDC.",
@@ -36,6 +37,7 @@ export default async function MomentPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  if (!isUuid(id)) notFound();
   const [initialUser, moment] = await Promise.all([
     getSessionUser(),
     getMomentDetail(id),
@@ -50,7 +52,7 @@ export default async function MomentPage({
           <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-black">
             <video
               src={moment.previewUrl}
-              poster={moment.posterUrl}
+              poster={moment.posterUrl ?? undefined}
               controls
               muted
               loop

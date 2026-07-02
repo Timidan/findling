@@ -23,6 +23,13 @@
 # misc
 .DS_Store
 *.pem
+*.key
+*.p12
+*.pfx
+
+# local package-manager credentials
+.npmrc
+.pnpmrc
 
 # debug
 npm-debug.log*
@@ -51,6 +58,11 @@ chats.txt
 # internal AI-orchestration planning docs — keep local, not for public judges
 docs/goals/
 docs/superpowers/
+docs/RUNBOOK.md
+docs/TESTNET-READINESS.md
+
+# local prototype notes
+src/app/prototype/clip-timeline/NOTES.md
 
 # editor / agent tool dirs — machine-local, no product value
 .agents/

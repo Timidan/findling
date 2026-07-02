@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
     select: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
+    transaction: vi.fn(),
   },
   findLicensableMoment: vi.fn(),
   reserveGrantCap: vi.fn(),
@@ -244,5 +245,102 @@ describe("runLicensePurchase reservation hardening", () => {
     expect(mocks.recordSettlement).not.toHaveBeenCalled();
     expect(mocks.createSignedDownloadUrl).not.toHaveBeenCalled();
     expect(mocks.releaseGrantCap).not.toHaveBeenCalled();
+  });
+
+  it("holds the grant cap for reconciliation when settle reports success without proof (unknown outcome)", async () => {
+    mockSelectRows([grant()]);
+    mockInsertReturning({ id: "reservation-3", status: "pending" });
+    // markPurchaseReservationUnknown goes through db.update; releasing the cap
+    // would go through db.transaction — which must NOT happen here.
+    mockUpdateReturning({ id: "reservation-3" });
+    mocks.db.transaction.mockResolvedValue(null);
+    const p = provider({
+      settle: vi.fn(async () => ({
+        ok: false as const,
+        network: "eip155:5042002",
+        reason: "success_without_transaction",
+        unknownOutcome: true,
+      })),
+    });
+
+    const res = await runLicensePurchase({
+      momentId: MOMENT_ID,
+      grantId: GRANT_ID,
+      agentRunId: null,
+      origin: "https://findling.example",
+      pathname: `/api/payments/x402/moments/${MOMENT_ID}/unlock`,
+      paymentHeader: PAYMENT_HEADER,
+      paymentProvider: p,
+      sellerAddress: "0xseller",
+    });
+
+    expect(res.status).toBe(502);
+    expect(res.body).toEqual({
+      error: "settlement_unknown",
+      reason: "success_without_transaction",
+    });
+    // cap kept reserved: no release path fired
+    expect(mocks.db.transaction).not.toHaveBeenCalled();
+    expect(mocks.releaseGrantCap).not.toHaveBeenCalled();
+    expect(mocks.recordSettlement).not.toHaveBeenCalled();
+    expect(mocks.createSignedDownloadUrl).not.toHaveBeenCalled();
+  });
+
+  it("releases the reserved cap on a clean settle failure (no funds moved)", async () => {
+    mockSelectRows([grant()]);
+    mockInsertReturning({ id: "reservation-4", status: "pending" });
+    mockUpdateReturning({ id: "reservation-4" });
+    // releasePendingPurchaseReservation runs inside db.transaction
+    mocks.db.transaction.mockResolvedValue({ id: "reservation-4", status: "released" });
+    const p = provider({
+      settle: vi.fn(async () => ({
+        ok: false as const,
+        network: "eip155:5042002",
+        reason: "settle_failed",
+        unknownOutcome: false,
+      })),
+    });
+
+    const res = await runLicensePurchase({
+      momentId: MOMENT_ID,
+      grantId: GRANT_ID,
+      agentRunId: null,
+      origin: "https://findling.example",
+      pathname: `/api/payments/x402/moments/${MOMENT_ID}/unlock`,
+      paymentHeader: PAYMENT_HEADER,
+      paymentProvider: p,
+      sellerAddress: "0xseller",
+    });
+
+    expect(res.status).toBe(402);
+    expect(res.body).toEqual({ error: "payment_not_settled", reason: "settle_failed" });
+    // cap released exactly once via the reservation transaction
+    expect(mocks.db.transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.recordSettlement).not.toHaveBeenCalled();
+    expect(mocks.createSignedDownloadUrl).not.toHaveBeenCalled();
+  });
+
+  it("blocks a retry of a payment already held for reconciliation — no re-reserve, no re-settle", async () => {
+    // select #1 = grant load; select #2 = findHeldReservationForPaymentHeader
+    mockSelectRows([grant()], [{ id: "held-1", status: "pending" }]);
+    const p = provider();
+
+    const res = await runLicensePurchase({
+      momentId: MOMENT_ID,
+      grantId: GRANT_ID,
+      agentRunId: null,
+      origin: "https://findling.example",
+      pathname: `/api/payments/x402/moments/${MOMENT_ID}/unlock`,
+      paymentHeader: PAYMENT_HEADER,
+      paymentProvider: p,
+      sellerAddress: "0xseller",
+    });
+
+    expect(res.status).toBe(409);
+    expect(res.body).toEqual({ error: "settlement_pending_reconciliation" });
+    // the held reservation short-circuits BEFORE any cap reservation or settle
+    expect(mocks.reserveGrantCap).not.toHaveBeenCalled();
+    expect(p.settle).not.toHaveBeenCalled();
+    expect(mocks.recordSettlement).not.toHaveBeenCalled();
   });
 });

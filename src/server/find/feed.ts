@@ -67,7 +67,7 @@ export interface AvailableFeedItem {
   durationMs: number;
   priceMicroUsdc: number;
   licence: string;
-  posterUrl: string;
+  posterUrl: string | null;
   previewUrl: string;
 }
 
@@ -308,15 +308,26 @@ async function availableItemsFromRows(
       matchesFilters(row, filters),
   );
   const previewKeys = eligibleRows.map((row) => row.moment.previewStorageKey!);
-  const previewUrlByKey = await supabaseStorage.createSignedDownloadUrls(
-    previewKeys,
-    PREVIEW_SIGNED_TTL_SECONDS,
-  );
+  // Poster is a separate still image (poster_storage_key, a .jpg) — NOT the
+  // licensed clip. Signing it publicly is safe and intended; the <img> in the
+  // card needs an image, not the preview .mp4.
+  const posterKeys = eligibleRows
+    .map((row) => row.moment.posterStorageKey)
+    .filter((key): key is string => !!key);
+  const [previewUrlByKey, posterUrlByKey] = await Promise.all([
+    supabaseStorage.createSignedDownloadUrls(previewKeys, PREVIEW_SIGNED_TTL_SECONDS),
+    posterKeys.length
+      ? supabaseStorage.createSignedDownloadUrls(posterKeys, PREVIEW_SIGNED_TTL_SECONDS)
+      : Promise.resolve(new Map<string, string | null>()),
+  ]);
 
   return eligibleRows.flatMap((row) => {
     const previewKey = row.moment.previewStorageKey!;
     const previewUrl = previewUrlByKey.get(previewKey);
     if (!previewUrl) return [];
+    const posterUrl = row.moment.posterStorageKey
+      ? posterUrlByKey.get(row.moment.posterStorageKey) ?? null
+      : null;
     return [
       {
         kind: "available" as const,
@@ -326,7 +337,7 @@ async function availableItemsFromRows(
         durationMs: row.moment.durationMs,
         priceMicroUsdc: row.moment.priceMicroUsdc,
         licence: licenceLabel(row.moment.licenseSummary),
-        posterUrl: previewUrl,
+        posterUrl,
         previewUrl,
       },
     ];

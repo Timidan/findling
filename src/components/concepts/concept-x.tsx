@@ -10,8 +10,9 @@ import { ReactLenis, useLenis } from "lenis/react";
 import { useReducedMotion } from "motion/react";
 import {
   ArrowRight,
+  ArrowsInLineVertical,
   CaretDown,
-  FilmSlate,
+  FilmStrip,
   Lightning,
   MagicWand,
   MagnifyingGlass,
@@ -47,6 +48,34 @@ const AGENT_QUERY = "find an 8s snowboard trick under $0.10 for a winter recap";
 // stable 3dp for the animated count-up + round demo prices; the split rows below
 // use formatMicroUsdc so a non-round leg would still render exactly.
 const usd = (micro: number) => (micro / 1_000_000).toFixed(3);
+
+// --- Beat 01 "the cut": a contact-sheet of discrete frames whose contiguous
+// in/out run becomes the hosted moment (design: /prototype/clip-timeline var. E).
+const FRAME_COUNT = 14;
+const SEL_START = 4; // first selected tile (inclusive)
+const SEL_END = 10; // last selected tile (inclusive)
+const FPS = 24;
+const SRC_FRAME_STEP = 11; // source frames between contact-sheet tiles
+const SEL_DURATION_S = ((SEL_END - SEL_START + 1) * SRC_FRAME_STEP) / FPS;
+
+// MM:SS:FF timecode from an absolute source-frame index.
+function tc(frame: number) {
+  const ff = frame % FPS;
+  const totalSeconds = Math.floor(frame / FPS);
+  const ss = totalSeconds % 60;
+  const mm = Math.floor(totalSeconds / 60);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(mm)}:${p(ss)}:${p(ff)}`;
+}
+
+const FRAMES = Array.from({ length: FRAME_COUNT }, (_, i) => ({
+  i,
+  selected: i >= SEL_START && i <= SEL_END,
+  // slide the background across the poster so each tile reads as a later frame
+  bgX: (i / (FRAME_COUNT - 1)) * 100,
+  bgY: 38 + (i % 3) * 8,
+  srcFrame: 84 + i * SRC_FRAME_STEP,
+}));
 
 interface Split {
   creatorMicroUsdc: number;
@@ -236,7 +265,16 @@ function useLandingMotion(
         const dots = storyTargets(".story-step-dot");
         const scrim = q(".cx-scrim")[0] as HTMLElement | undefined;
         const video = q(".cx-video")[0] as HTMLElement | undefined;
-        const clipTrack = storyTargets(".clip-track")[0];
+        const cutTiles = storyTargets("[data-tile]");
+        const cutSel = storyTargets("[data-tile-sel='1']");
+        const cutUnsel = storyTargets("[data-tile-sel='0']");
+        const cutWalker = storyTargets("[data-walker]");
+        const cutInOut = storyTargets("[data-in], [data-out]");
+        const cutRing = storyTargets("[data-selring]");
+        const cutCard = storyTargets("[data-card]");
+        const cutDur = storyTargets("[data-dur]")[0] as HTMLElement | undefined;
+        const firstSel = cutSel[0] as HTMLElement | undefined;
+        const lastSel = cutSel[cutSel.length - 1] as HTMLElement | undefined;
         const payWire = storyTargets(".pay-wire-track")[0];
         const payDot = storyTargets(".pay-dot")[0];
         const agentType = storyTargets(".agent-type")[0];
@@ -248,11 +286,17 @@ function useLandingMotion(
         gsap.set(dots, { autoAlpha: 0.42, scale: 0.86 });
         gsap.set(dots[0], { autoAlpha: 1, scale: 1.15 });
 
-        gsap.set(storyTargets(".clip-region"), { xPercent: 12, scaleX: 0.1, transformOrigin: "0% 50%" });
-        gsap.set(storyTargets(".clip-bracket-left"), { x: -52, scaleY: 0.45, autoAlpha: 0.35 });
-        gsap.set(storyTargets(".clip-bracket-right"), { x: 52, scaleY: 0.45, autoAlpha: 0.35 });
-        gsap.set(storyTargets(".clip-playhead"), { x: 0, autoAlpha: 0.9 });
-        gsap.set(storyTargets(".clip-moment"), { autoAlpha: 0, y: 28, scale: 0.94 });
+        gsap.set(cutTiles, { autoAlpha: 1, filter: "grayscale(0)", scale: 1, y: 0 });
+        gsap.set([...cutRing, ...cutInOut], { autoAlpha: 0 });
+        gsap.set(cutCard, { autoAlpha: 0, y: 22, scale: 0.96 });
+        if (firstSel) {
+          gsap.set(cutWalker, {
+            autoAlpha: 0,
+            x: () => firstSel.offsetLeft,
+            width: () => firstSel.offsetWidth,
+          });
+        }
+        if (cutDur) cutDur.textContent = "0.0s";
 
         gsap.set(storyTargets(".tag-pill"), { autoAlpha: 0, y: 18, scale: 0.92 });
         gsap.set(storyTargets(".curate-reward"), { autoAlpha: 0, y: 14 });
@@ -316,15 +360,93 @@ function useLandingMotion(
             .to(dots[i], { autoAlpha: 1, scale: 1.15, duration: 0.25 }, i);
         }
 
+        // ---- Beat 01: the contact-sheet cut (scroll-scrubbed) ----
+        if (firstSel && lastSel) {
+          // ring hugs the contiguous run; recomputed on refresh via fn values
+          storyTl.set(
+            cutRing,
+            {
+              left: () => firstSel.offsetLeft - 5,
+              width: () => lastSel.offsetLeft + lastSel.offsetWidth - firstSel.offsetLeft + 10,
+            },
+            0,
+          );
+
+          // frames outside the in/out run desaturate + dim
+          storyTl.to(
+            cutUnsel,
+            { autoAlpha: 0.24, filter: "grayscale(1)", duration: 0.1, stagger: 0.008 },
+            0.06,
+          );
+          // selection ring snaps in; IN / OUT tags pop on the run's edges
+          storyTl.to(cutRing, { autoAlpha: 1, duration: 0.08 }, 0.16);
+          storyTl.fromTo(
+            cutInOut,
+            { autoAlpha: 0, y: 6, scale: 0.8 },
+            { autoAlpha: 1, y: 0, scale: 1, duration: 0.08, ease: "back.out(2)" },
+            0.18,
+          );
+
+          // stepped playhead HOPS frame-by-frame across the run (discrete jumps)
+          const hop = 0.03;
+          const walkStart = 0.22;
+          storyTl.set(cutWalker, { autoAlpha: 1 }, walkStart);
+          cutSel.forEach((el, idx) => {
+            const at = walkStart + idx * hop;
+            storyTl.set(cutWalker, { x: () => el.offsetLeft, width: () => el.offsetWidth }, at);
+            storyTl.to(el, { y: -8, scale: 1.06, duration: 0.03, ease: "power2.out" }, at);
+            storyTl.to(el, { y: 0, scale: 1, duration: 0.04, ease: "power2.in" }, at + hop * 0.55);
+          });
+          const walkEnd = walkStart + cutSel.length * hop;
+
+          // the run lifts together, then coalesces into the hosted moment card
+          storyTl.to(
+            cutSel,
+            { y: -10, scale: 1.04, duration: 0.08, stagger: { each: 0.01, from: "center" } },
+            walkEnd + 0.02,
+          );
+          storyTl.to(cutWalker, { autoAlpha: 0, duration: 0.05 }, walkEnd + 0.02);
+          storyTl.to(
+            cutSel,
+            {
+              y: 40,
+              scale: 0.35,
+              autoAlpha: 0,
+              duration: 0.12,
+              ease: "power2.in",
+              stagger: { each: 0.008, from: "edges" },
+            },
+            walkEnd + 0.12,
+          );
+          storyTl.to(
+            cutRing,
+            { autoAlpha: 0, scaleX: 0.9, transformOrigin: "50% 50%", duration: 0.1 },
+            walkEnd + 0.14,
+          );
+          storyTl.to(cutInOut, { autoAlpha: 0, duration: 0.08 }, walkEnd + 0.14);
+          storyTl.to(
+            cutCard,
+            { autoAlpha: 1, y: 0, scale: 1, duration: 0.14, ease: "power3.out" },
+            walkEnd + 0.2,
+          );
+
+          // duration counter ticks up while the run is scanned
+          const dur = { v: 0 };
+          storyTl.to(
+            dur,
+            {
+              v: SEL_DURATION_S,
+              duration: Math.max(0.2, walkEnd - 0.2),
+              ease: "none",
+              onUpdate: () => {
+                if (cutDur) cutDur.textContent = `${dur.v.toFixed(1)}s`;
+              },
+            },
+            0.18,
+          );
+        }
+
         storyTl
-          .to(storyTargets(".clip-region"), { xPercent: 26, scaleX: 0.44, duration: 0.24, ease: "back.out(2.4)" }, 0.1)
-          .to(
-            storyTargets(".clip-bracket-left, .clip-bracket-right"),
-            { x: 0, scaleY: 1, autoAlpha: 1, duration: 0.18, stagger: 0.025, ease: "back.out(3)" },
-            0.14,
-          )
-          .to(storyTargets(".clip-playhead"), { x: () => (clipTrack?.clientWidth ?? 260) - 3, duration: 0.5, ease: "none" }, 0.33)
-          .to(storyTargets(".clip-moment"), { autoAlpha: 1, y: 0, scale: 1, duration: 0.42 }, 0.68)
           .to(storyTargets(".tag-pill"), { autoAlpha: 1, y: 0, scale: 1, duration: 0.34, stagger: 0.06 }, 1.14)
           .to(storyTargets(".curate-reward"), { autoAlpha: 1, y: 0, duration: 0.35 }, 1.48);
 
@@ -695,9 +817,9 @@ function StoryPanel({ children, index }: { children: React.ReactNode; index: num
 function CutTimeline() {
   return (
     <div className="flex h-full w-full flex-col justify-center">
-      {/* source monitor — looks like an editor's program preview */}
-      <div className="mb-3 overflow-hidden rounded-xl border border-white/10 bg-black shadow-[0_20px_50px_-30px_rgba(0,0,0,0.9)]">
-        <div className="relative h-[11.5rem] w-full sm:h-[13.5rem] md:h-[16rem]">
+      <div className="mx-auto w-full max-w-3xl">
+        {/* source monitor */}
+        <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black shadow-[0_20px_50px_-30px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.08)]">
           <video
             src={VIDEO}
             poster={POSTER}
@@ -706,81 +828,152 @@ function CutTimeline() {
             loop
             playsInline
             preload="metadata"
-            className="size-full object-cover opacity-95"
+            className="h-[9rem] w-full object-cover opacity-95 sm:h-[10.5rem] md:h-[12rem]"
           />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/20" />
-          <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-md bg-black/55 px-2 py-1 font-mono text-[0.62rem] uppercase tracking-wider text-white/85 backdrop-blur">
-            <span className="size-1.5 rounded-full bg-[#e0614a]" /> source
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
+          <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-md border border-white/10 bg-black/60 px-2 py-1 font-mono text-[0.62rem] uppercase tracking-wider text-white/85 backdrop-blur">
+            <span className="size-1.5 rounded-full bg-[#e0614a] shadow-[0_0_6px_#e0614a]" /> source
           </div>
-          <div className="absolute right-3 top-3 rounded-md bg-black/55 px-2 py-1 font-mono text-[0.62rem] tabular-nums text-white/85 backdrop-blur">
+          <div className="absolute right-3 top-3 rounded-md border border-white/10 bg-black/60 px-2 py-1 font-mono text-[0.62rem] tabular-nums text-white/75 backdrop-blur">
             00:00:08:04
           </div>
         </div>
-      </div>
 
-      <div className="mb-2 flex items-end justify-between gap-3 font-mono text-[0.68rem] sm:text-xs">
-        <div className="min-w-0">
-          <p className="uppercase tracking-[0.18em] text-white/42">timeline</p>
-          <p className="mt-1 text-white/65">
-            in <span className="text-white/85">0:03</span> · out <span className="text-white/85">0:11</span>
-          </p>
-        </div>
-        <p className="flex shrink-0 items-center gap-1.5 text-sage">
-          <Scissors weight="bold" className="size-3.5" /> clip / 0:08
-        </p>
-      </div>
-
-      {/* NLE timeline track — filmstrip of frames with trim handles + playhead */}
-      <div className="clip-track relative h-20 overflow-hidden rounded-lg border border-white/12 bg-black/60 sm:h-24">
-        {/* filmstrip frames (tiled source) */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-35"
-          style={{ backgroundImage: `url(${POSTER})`, backgroundSize: "auto 100%", backgroundRepeat: "repeat-x" }}
-        />
-        <div className="pointer-events-none absolute inset-0 bg-black/35" />
-        <div className="pointer-events-none absolute inset-0 flex">
-          {Array.from({ length: 12 }).map((_, index) => (
-            <span key={index} className="h-full flex-1 border-r border-white/10 last:border-r-0" />
-          ))}
-        </div>
-
-        {/* selected clip region (GSAP-driven: xPercent/scaleX from 0% 50%) */}
-        <div className="clip-region absolute inset-y-0 left-0 w-full border-y-2 border-sage bg-sage/15 shadow-[inset_0_0_0_1px_rgba(110,122,94,0.45)]" />
-
-        {/* trim handles (GSAP-driven: x + scaleY). Positioned via top/height, no translate. */}
-        <div className="clip-bracket-left absolute left-[26%] top-3 flex h-14 w-3 origin-center items-center justify-center rounded-l-md bg-sage sm:top-4 sm:h-16 sm:w-3.5">
-          <span className="h-6 w-px bg-black/35" />
-        </div>
-        <div className="clip-bracket-right absolute left-[70%] top-3 flex h-14 w-3 origin-center items-center justify-center rounded-r-md bg-sage sm:top-4 sm:h-16 sm:w-3.5">
-          <span className="h-6 w-px bg-black/35" />
-        </div>
-
-        {/* playhead (GSAP-driven: x) with a knob */}
-        <div className="clip-playhead absolute left-0 top-0 h-full w-0.5 bg-white">
-          <span className="absolute -left-[5px] -top-1 size-3 rotate-45 rounded-[2px] bg-white shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
-        </div>
-      </div>
-
-      {/* time ruler */}
-      <div className="mt-1.5 flex justify-between font-mono text-[0.6rem] tabular-nums text-white/35">
-        {["0:00", "0:03", "0:06", "0:09", "0:13"].map((t) => (
-          <span key={t}>{t}</span>
-        ))}
-      </div>
-
-      {/* the hosted moment that lifts out */}
-      <div className="clip-moment mt-4 rounded-xl border border-white/10 bg-zinc-950/80 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="grid size-8 shrink-0 place-items-center rounded-full border border-white/15 bg-white/10 text-sage">
-              <FilmSlate weight="duotone" className="size-4" />
+        {/* contact-sheet header */}
+        <div className="mt-4 flex items-center justify-between px-0.5">
+          <div className="flex items-center gap-2">
+            <span className="grid size-7 place-items-center rounded-md border border-sage/30 bg-sage/10">
+              <Scissors weight="bold" className="size-3.5 text-sage" />
             </span>
-            <div className="min-w-0">
-              <p className="truncate text-[0.8rem] font-medium text-white">Snowboard — backside 360</p>
-              <p className="mt-0.5 truncate font-mono text-[0.65rem] text-white/44">hosted moment · 8.0s</p>
+            <div className="leading-tight">
+              <p className="font-mono text-[0.6rem] uppercase tracking-[0.18em] text-white/45">select in / out</p>
+              <p className="mt-0.5 flex items-center gap-1.5 text-white/70">
+                <FilmStrip weight="fill" className="size-3 text-white/40" />
+                <span className="font-mono text-[0.68rem] tabular-nums">{FRAME_COUNT} frames</span>
+              </p>
             </div>
           </div>
-          <Scissors weight="bold" className="size-4 shrink-0 text-sage" />
+          <div className="flex items-center gap-2 rounded-md border border-sage/25 bg-sage/[0.08] px-2.5 py-1.5">
+            <ArrowsInLineVertical weight="bold" className="size-3 text-sage/80" />
+            <span data-dur className="font-mono text-[0.8rem] font-medium tabular-nums text-sage">
+              {SEL_DURATION_S.toFixed(1)}s
+            </span>
+          </div>
+        </div>
+
+        {/* contact strip */}
+        <div className="relative mt-3 overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-950/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur">
+          <div data-strip className="relative flex gap-1.5">
+            {/* selection ring — geometry set from JS to hug the contiguous run */}
+            <div
+              data-selring
+              className="pointer-events-none absolute -inset-y-1 z-20 rounded-lg ring-2 ring-sage shadow-[0_0_0_1px_rgba(138,150,123,0.35),0_0_22px_rgba(138,150,123,0.35)]"
+              style={{ left: 0, width: 0, opacity: 0 }}
+            />
+            {/* stepped playhead highlight */}
+            <div
+              data-walker
+              className="pointer-events-none absolute -inset-y-1.5 z-30 rounded-lg border-2 border-white/90 bg-white/[0.07] shadow-[0_0_16px_rgba(255,255,255,0.45)]"
+              style={{ left: 0, width: 0, opacity: 0 }}
+            >
+              <span className="absolute -top-1.5 left-1/2 size-2.5 -translate-x-1/2 rotate-45 rounded-[2px] bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />
+            </div>
+
+            {FRAMES.map((f) => {
+              const isFirstSel = f.i === SEL_START;
+              const isLastSel = f.i === SEL_END;
+              return (
+                <div
+                  key={f.i}
+                  data-tile
+                  data-tile-sel={f.selected ? "1" : "0"}
+                  className="relative aspect-[3/4] flex-1 overflow-hidden rounded-md border border-white/10 bg-zinc-900 will-change-transform"
+                  style={{
+                    backgroundImage: `url(${POSTER})`,
+                    backgroundSize: "360% auto",
+                    backgroundPosition: `${f.bgX}% ${f.bgY}%`,
+                    // no-JS / mobile / reduced-motion resting state: the cut is "made"
+                    ...(f.selected ? null : { opacity: 0.24, filter: "grayscale(1)" }),
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-black/10" />
+                  <div className="pointer-events-none absolute inset-0 rounded-md shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]" />
+                  <span className="absolute inset-x-0.5 bottom-0.5 truncate rounded bg-black/55 px-0.5 py-px text-center font-mono text-[0.42rem] leading-none tabular-nums text-white/70 backdrop-blur">
+                    {String(f.i).padStart(2, "0")}
+                  </span>
+
+                  {isFirstSel && (
+                    <span
+                      data-in
+                      className="absolute -left-1 -top-2 z-40 rounded-[3px] bg-sage px-1 py-px font-mono text-[0.5rem] font-bold uppercase leading-none tracking-wider text-black shadow-[0_0_10px_rgba(138,150,123,0.6)]"
+                    >
+                      in
+                    </span>
+                  )}
+                  {isLastSel && (
+                    <span
+                      data-out
+                      className="absolute -right-1 -top-2 z-40 rounded-[3px] bg-sage px-1 py-px font-mono text-[0.5rem] font-bold uppercase leading-none tracking-wider text-black shadow-[0_0_10px_rgba(138,150,123,0.6)]"
+                    >
+                      out
+                    </span>
+                  )}
+                  {isFirstSel && (
+                    <span className="pointer-events-none absolute inset-y-0 left-0 z-10 w-1 rounded-l-md bg-sage">
+                      <span className="absolute left-[3px] top-1/2 h-4 w-px -translate-y-1/2 bg-black/40" />
+                    </span>
+                  )}
+                  {isLastSel && (
+                    <span className="pointer-events-none absolute inset-y-0 right-0 z-10 w-1 rounded-r-md bg-sage">
+                      <span className="absolute right-[3px] top-1/2 h-4 w-px -translate-y-1/2 bg-black/40" />
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* frame-index ruler */}
+          <div className="mt-2 flex items-center justify-between px-0.5 font-mono text-[0.55rem] tabular-nums text-white/30">
+            {["0:00", "0:04", "0:07", "0:10", "0:13"].map((t) => (
+              <span key={t}>{t}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* hosted-moment card — assembles beneath the strip */}
+        <div
+          data-card
+          className="mt-4 flex items-center gap-3 rounded-xl border border-sage/25 bg-zinc-950/80 p-3 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur"
+        >
+          <div
+            className="relative h-12 w-20 shrink-0 overflow-hidden rounded-md border border-white/10 bg-zinc-900"
+            style={{ backgroundImage: `url(${POSTER})`, backgroundSize: "cover", backgroundPosition: "center 42%" }}
+          >
+            <div className="absolute inset-0 grid place-items-center bg-black/25">
+              <span className="grid size-5 place-items-center rounded-full bg-white/85 shadow">
+                <span className="ml-0.5 size-0 border-y-[4px] border-l-[7px] border-y-transparent border-l-black" />
+              </span>
+            </div>
+            <span className="absolute left-1 top-1 rounded bg-sage/90 px-1 py-px font-mono text-[0.42rem] font-bold uppercase leading-none tracking-wide text-black">
+              moment
+            </span>
+          </div>
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="font-display text-base text-white">Snowboard — backside 360</p>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[0.6rem] tabular-nums text-white/45">
+              <span className="uppercase tracking-widest">hosted moment</span>
+              <span className="h-2.5 w-px bg-white/20" />
+              <span className="text-sage">{SEL_DURATION_S.toFixed(1)}s</span>
+              <span className="h-2.5 w-px bg-white/20" />
+              <span>
+                {tc(FRAMES[SEL_START].srcFrame)} → {tc(FRAMES[SEL_END].srcFrame)}
+              </span>
+            </p>
+          </div>
+          <span className="shrink-0 rounded-md border border-sage/30 bg-sage/10 px-2 py-1 font-mono text-[0.6rem] uppercase tracking-wider text-sage">
+            ready
+          </span>
         </div>
       </div>
     </div>

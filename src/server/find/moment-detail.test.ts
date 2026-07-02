@@ -30,6 +30,7 @@ function licensable(over: Record<string, unknown> = {}) {
       usageType: "video_embed",
       licenseSummary: "CC BY",
       previewStorageKey: "preview/m1.mp4",
+      posterStorageKey: "poster/m1.jpg",
       clipStorageKey: "clip/m1.mp4",
       ...over,
     },
@@ -48,7 +49,7 @@ beforeEach(() => {
       ],
     }),
   });
-  mocks.signOne.mockResolvedValue("https://signed/preview/m1.mp4");
+  mocks.signOne.mockImplementation(async (key: string) => `https://signed/${key}`);
 });
 
 describe("getMomentDetail", () => {
@@ -62,11 +63,12 @@ describe("getMomentDetail", () => {
     expect(await getMomentDetail("m1")).toBeNull();
   });
 
-  it("signs ONLY the preview key — never the clip key — and never leaks it", async () => {
+  it("signs the preview + poster keys — never the clip key — and never leaks it", async () => {
     mocks.findLicensableMoment.mockResolvedValue(licensable());
     const d = await getMomentDetail("m1");
 
     expect(mocks.signOne).toHaveBeenCalledWith("preview/m1.mp4", expect.any(Number));
+    expect(mocks.signOne).toHaveBeenCalledWith("poster/m1.jpg", expect.any(Number));
     expect(mocks.signOne).not.toHaveBeenCalledWith("clip/m1.mp4", expect.any(Number));
     expect(d).toMatchObject({
       id: "m1",
@@ -76,11 +78,19 @@ describe("getMomentDetail", () => {
       priceMicroUsdc: 80000,
       priceUsd: "0.08",
       licence: "CC BY",
-      posterUrl: "https://signed/preview/m1.mp4",
+      // poster is the .jpg image; preview is the watermarked .mp4 — distinct
+      posterUrl: "https://signed/poster/m1.jpg",
       previewUrl: "https://signed/preview/m1.mp4",
     });
     // The full clip key must never appear anywhere in the public DTO.
     expect(JSON.stringify(d)).not.toContain("clip/m1.mp4");
+  });
+
+  it("returns a null poster (never the video) when there is no poster key", async () => {
+    mocks.findLicensableMoment.mockResolvedValue(licensable({ posterStorageKey: null }));
+    const d = await getMomentDetail("m1");
+    expect(d?.posterUrl).toBeNull();
+    expect(d?.previewUrl).toBe("https://signed/preview/m1.mp4");
   });
 
   it("falls back to Standard licence label when summary is null", async () => {

@@ -32,6 +32,31 @@ export function hashPaymentHeader(paymentHeader: string): string {
   return `sha256:${createHash("sha256").update(paymentHeader).digest("hex")}`;
 }
 
+/**
+ * A reservation for THIS exact signed payment that is still HELD (`pending` or
+ * `recording`) — an earlier attempt whose settle outcome is unknown and is
+ * awaiting reconciliation. Used to make a client retry idempotent: the caller
+ * must NOT re-reserve the grant cap / re-settle the same payment while one is
+ * held, or repeated retries would drain the cap and risk a double charge.
+ */
+export async function findHeldReservationForPaymentHeader(
+  paymentHeaderHash: string,
+): Promise<PurchaseReservation | null> {
+  const rows = await db
+    .select()
+    .from(purchaseReservations)
+    .where(
+      and(
+        eq(purchaseReservations.paymentHeaderHash, paymentHeaderHash),
+        or(
+          eq(purchaseReservations.status, "pending"),
+          eq(purchaseReservations.status, "recording"),
+        ),
+      ),
+    );
+  return rows[0] ?? null;
+}
+
 export async function createPendingPurchaseReservation(input: {
   momentId: string;
   buyerId: string;

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import {
   getUnifiedFeed,
   type FeedTab,
@@ -10,6 +11,16 @@ import { SiteHeader } from "@/components/site/site-header";
 import { FindShell } from "@/components/find/find-shell";
 
 export const dynamic = "force-dynamic";
+
+// The unified feed is a public, slowly-changing read-model. Cache it briefly so
+// tab/filter/search navigation is served from the Data Cache instead of
+// re-querying the remote DB on every click. The 30s TTL stays well within the
+// 15-min signed-URL lifetime, so cached poster/preview URLs never go stale.
+const getUnifiedFeedCached = unstable_cache(
+  (opts: Parameters<typeof getUnifiedFeed>[0]) => getUnifiedFeed(opts),
+  ["find:unified-feed"],
+  { revalidate: 30, tags: ["find-feed"] },
+);
 
 export const metadata: Metadata = {
   title: "Find — the exact video moment you can actually license · Findling",
@@ -36,7 +47,9 @@ export default async function FindPage({
   const tabParam = one(sp.tab);
   const tab: FeedTab =
     tabParam === "available" || tabParam === "wanted" ? tabParam : "all";
-  const query = (one(sp.q) ?? "").trim();
+  // Clamp the public search query before it flows into the feed / embedding path
+  // (unbounded text would otherwise reach the paid embedding provider).
+  const query = (one(sp.q) ?? "").trim().slice(0, 120);
   const view: "grid" | "list" = one(sp.view) === "list" ? "list" : "grid";
   const filters = {
     usageType: one(sp.usage) as FeedUsageType | undefined,
@@ -48,8 +61,8 @@ export default async function FindPage({
 
   const [initialUser, feed, wanted] = await Promise.all([
     getSessionUser(),
-    getUnifiedFeed({ tab, query: query || undefined, filters, limit: 36 }),
-    getUnifiedFeed({ tab: "wanted", limit: 100 }),
+    getUnifiedFeedCached({ tab, query: query || undefined, filters, limit: 36 }),
+    getUnifiedFeedCached({ tab: "wanted", limit: 100 }),
   ]);
 
   return (

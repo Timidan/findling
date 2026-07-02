@@ -4,6 +4,7 @@ import { db } from "@/server/db/client";
 import { users } from "@/server/db/schema";
 import { requireUserId, UnauthenticatedError } from "@/server/auth/current-user";
 import { isSameOrigin } from "@/server/auth/csrf";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,10 @@ export async function POST(req: NextRequest) {
     throw e;
   }
 
+  const limited = await enforceRateLimit("mutation", userId);
+  if (limited) return limited;
+
+  // TODO(security): require a fresh signed proof-of-control of the new payout wallet (step-up)
   const body = (await req.json().catch(() => null)) as { address?: string } | null;
   const address = typeof body?.address === "string" ? body.address.trim() : "";
   if (!ADDR_RE.test(address)) {

@@ -14,6 +14,7 @@ import {
   type PublicClaimSession,
 } from "../../../../server/claimable/claim";
 import { verifyPeerTubeActorProof } from "../../../../server/claimable/peertube-proof";
+import { enforceRateLimit, clientIp } from "@/server/ratelimit/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -108,9 +109,11 @@ export async function claimSessionResponse(
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<{ token: string }> },
 ) {
+  const limited = await enforceRateLimit("claim", clientIp(req));
+  if (limited) return limited;
   const { token } = await ctx.params;
   return getClaimSessionResponse(token);
 }
@@ -119,6 +122,8 @@ export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ token: string }> },
 ) {
+  const limited = await enforceRateLimit("claim", clientIp(req));
+  if (limited) return limited;
   const { getActor } = await import("../../../../server/auth/current-user");
   const actor = await getActor(req);
   const { token } = await ctx.params;

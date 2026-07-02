@@ -141,11 +141,25 @@ requireSet("SUPABASE_SERVICE_ROLE_KEY", "server-side Supabase storage access");
 requireUrl("GATEWAY_FACILITATOR_URL", { https: production });
 requireAddress("SELLER_ADDRESS");
 
-const paymentProvider = value("PAYMENT_PROVIDER") || "mock";
-if (production && paymentProvider !== "gateway_x402") {
+// PAYMENT_PROVIDER gates the money path: `mock` records fake settlements, so a
+// public-testnet deploy that pays real creators/finders MUST be gateway_x402.
+// Always require it to be set explicitly (no silent `mock` default in the gate),
+// and refuse anything but gateway_x402 in production so mock payouts can't ship.
+const paymentProvider = value("PAYMENT_PROVIDER");
+if (!paymentProvider) {
+  errors.push(
+    "PAYMENT_PROVIDER is required (set gateway_x402 for a live gateway deployment).",
+  );
+} else if (production && paymentProvider !== "gateway_x402") {
   errors.push("PAYMENT_PROVIDER must be gateway_x402 for live deployment.");
 }
-if (requireWithdrawals) {
+
+// SELLER_PRIVATE_KEY signs on-chain gateway payouts (withdrawals). It is the
+// money-critical key for the payout half of the marketplace, so the DEFAULT gate
+// requires it in production even without --require-withdrawals: a public deploy
+// without it silently ships a marketplace where creators/finders can never be
+// paid out. Off-production it stays a warning so `mock` local runs still pass.
+if (requireWithdrawals || production) {
   requirePrivateKey("SELLER_PRIVATE_KEY");
 } else if (!value("SELLER_PRIVATE_KEY")) {
   warnings.push("SELLER_PRIVATE_KEY is not set; live withdrawals will fail, though x402 buys can still settle.");
@@ -166,15 +180,28 @@ if (production && embeddingProvider === "local") {
   warnings.push("EMBEDDING_PROVIDER=local is allowed, but confirm your host can download/cache the HF model.");
 }
 
-if (requireYoutube) {
+// YouTube import is "enabled" (and therefore money-adjacent config that must be
+// gated by the DEFAULT check) whenever ANY of its vars are present — the OAuth
+// client trio or the token-encryption key. `--require-youtube` forces it on even
+// if nothing is set yet, for a deploy that will turn it on.
+const youtubeConfigured =
+  value("GOOGLE_CLIENT_ID") ||
+  value("GOOGLE_CLIENT_SECRET") ||
+  value("GOOGLE_OAUTH_REDIRECT_URI") ||
+  value("YOUTUBE_TOKEN_ENC_KEY");
+
+if (requireYoutube || youtubeConfigured) {
   requireSet("GOOGLE_CLIENT_ID", "YouTube import");
   requireSet("GOOGLE_CLIENT_SECRET", "YouTube import");
   requireUrl("GOOGLE_OAUTH_REDIRECT_URI", { https: production, noLocalhost: production });
   requireSet("YOUTUBE_TOKEN_ENC_KEY", "stored YouTube refresh-token encryption");
 }
 
-// Whenever the token-encryption key is set (even without --require-youtube),
-// reject a weak value — a weak key silently weakens at-rest token encryption.
+// Whenever the token-encryption key is set — via --require-youtube, because the
+// feature is configured, or on its own — reject a weak value. token-crypto.ts has
+// a fallback scrypt branch that derives a key from ANY string with a hardcoded
+// salt, so a weak passphrase is silently accepted and quietly weakens the at-rest
+// encryption of stored YouTube refresh tokens. Require real ≥32-byte entropy.
 if (value("YOUTUBE_TOKEN_ENC_KEY")) requireStrongSecret("YOUTUBE_TOKEN_ENC_KEY");
 
 if (warnings.length) {

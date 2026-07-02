@@ -4,6 +4,7 @@ import { db } from "@/server/db/client";
 import { users } from "@/server/db/schema";
 import { requireUserId, UnauthenticatedError } from "@/server/auth/current-user";
 import { isSameOrigin } from "@/server/auth/csrf";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,9 @@ export async function POST(req: NextRequest) {
     }
     throw e;
   }
+
+  const limited = await enforceRateLimit("mutation", userId);
+  if (limited) return limited;
 
   const body = (await req.json().catch(() => null)) as { username?: string } | null;
   const username =

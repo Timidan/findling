@@ -15,6 +15,7 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { createFindlingMcpServer } from "@/server/mcp/server";
 import { verifyAgentKey, bearerFrom } from "@/server/auth/agent-credential";
+import { enforceRateLimit, clientIp } from "@/server/ratelimit/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,6 +39,8 @@ function unauthorized(): Response {
 }
 
 async function handle(req: Request): Promise<Response> {
+  const limited = await enforceRateLimit("mcp", clientIp(req));
+  if (limited) return limited;
   // Authenticate the agent from the bearer key BEFORE creating the server, so an
   // unauthenticated request never touches a tool. verifyAgentKey honours
   // revocation + expiry.

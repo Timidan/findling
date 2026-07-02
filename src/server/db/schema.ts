@@ -187,6 +187,42 @@ export const siweNonces = pgTable("siwe_nonces", {
   createdAt: createdAt(),
 });
 
+/* ---------------- rate limiting (Postgres-backed token buckets) ---------------- */
+// One row per limiter key (e.g. "search:user:<id>", "nonce:ip:<ip>"). `tokens`
+// refills continuously toward a per-limit capacity; the atomic upsert in
+// src/server/ratelimit/rate-limit.ts refills-then-consumes in a single
+// statement. Stale rows are swept by the cleanup job. Owner role bypasses RLS.
+export const rateLimitBuckets = pgTable("rate_limit_buckets", {
+  key: text("key").primaryKey(),
+  tokens: real("tokens").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/* ---------------- upload intents (orphaned-object tracking) ---------------- */
+// Every presigned direct upload records its intended storage key here so a
+// sweeper can delete objects that were presigned but never finalized into an
+// asset/moment. Resolved to 'completed' by uploads/complete, else swept.
+export const uploadIntentStatusEnum = pgEnum("upload_intent_status", [
+  "pending",
+  "completed",
+  "swept",
+]);
+export const uploadIntents = pgTable(
+  "upload_intents",
+  {
+    id: id(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    storageKey: text("storage_key").notNull().unique(),
+    contentType: text("content_type").notNull(),
+    status: uploadIntentStatusEnum("status").notNull().default("pending"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("upload_intents_status_created_idx").on(t.status, t.createdAt)],
+);
+
 /* ---------------- assets (source container) ---------------- */
 export const assets = pgTable("assets", {
   id: id(),
@@ -336,7 +372,14 @@ export const curations = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index("curations_moment_idx").on(t.momentId)],
+  (t) => [
+    index("curations_moment_idx").on(t.momentId),
+    // One curation per (finder, moment): stops a finder from spamming many
+    // curations on the same moment to burn re-embeds / game the 12% land-grab.
+    // submitCuration upserts on this key. (If pre-existing duplicates exist,
+    // dedupe them before applying this migration.)
+    uniqueIndex("curations_moment_finder_uq").on(t.momentId, t.finderId),
+  ],
 );
 
 /* ---------------- buyer session grants (delegated, capped agent key) ---------------- */

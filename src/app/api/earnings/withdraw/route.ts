@@ -14,6 +14,7 @@ import { requestWithdrawal, NothingToWithdrawError } from "@/server/ledger/withd
 import { getPayoutProvider } from "@/server/payment";
 import { getActor } from "@/server/auth/current-user";
 import { resolveAuthDomain } from "@/server/auth/siwe";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -37,6 +38,12 @@ export async function POST(req: NextRequest) {
   if (!actor) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
+
+  // Throttle the money mutation per identity (the `withdraw` bucket exists for
+  // exactly this). Withdrawals are already balance-bound and serialized by an
+  // advisory lock, but this caps provider-call churn from a single actor.
+  const limited = await enforceRateLimit("withdraw", actor.userId);
+  if (limited) return limited;
 
   const command = normalizeWithdrawCommand(await req.json().catch(() => null));
   if (!command.ok) {

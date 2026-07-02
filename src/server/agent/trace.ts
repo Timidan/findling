@@ -6,6 +6,7 @@
 import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { agentRuns, moments, users, receipts } from "@/server/db/schema";
+import { publicHandle } from "@/server/users/public-handle";
 import { canViewTrace } from "./trace-access";
 
 export interface TraceCandidate {
@@ -59,7 +60,16 @@ export async function getAgentRunTrace(
 
   const chosenMomentTitle = run.chosenMomentId ? titleById.get(run.chosenMomentId) ?? null : null;
   const finder = run.chosenFinderId
-    ? (await db.select().from(users).where(eq(users.id, run.chosenFinderId)))[0]
+    ? (
+        await db
+          .select({
+            username: users.username,
+            displayName: users.displayName,
+            walletAddress: users.walletAddress,
+          })
+          .from(users)
+          .where(eq(users.id, run.chosenFinderId))
+      )[0]
     : undefined;
   const receipt = run.receiptId
     ? (await db.select({ slug: receipts.publicSlug }).from(receipts).where(eq(receipts.id, run.receiptId)))[0]
@@ -73,7 +83,7 @@ export async function getAgentRunTrace(
     budgetMicroUsdc: run.budgetMicroUsdc,
     candidates,
     chosenMomentTitle,
-    chosenFinderHandle: finder ? finder.displayName ?? finder.email.split("@")[0] : null,
+    chosenFinderHandle: finder ? publicHandle(finder, "finder") : null,
     attributionReason: run.attributionReason,
     paymentStatus: run.paymentStatus,
     paymentReference: run.paymentReference,

@@ -1,46 +1,41 @@
-import { sql } from "drizzle-orm";
-import { db } from "@/server/db/client";
+import { getHealth, type Check } from "@/server/ops/health";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const REQUIRED_ENV = [
-  "NEXT_PUBLIC_APP_URL",
-  "DATABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "SUPABASE_SERVICE_ROLE_KEY",
-  "AUTH_SESSION_SECRET",
-  "GATEWAY_FACILITATOR_URL",
-  "SELLER_ADDRESS",
-] as const;
-
-function missingEnv(): string[] {
-  return REQUIRED_ENV.filter((key) => !process.env[key]);
-}
-
+/**
+ * Deep readiness probe. Beyond env + DB it checks storage, the payment and
+ * embedding providers, and the media binaries (see server/ops/health.ts). The
+ * report is cached ~5s so frequent monitors don't hammer the dependencies.
+ *
+ * HTTP status is driven by the CRITICAL checks only: 200 when healthy (even if
+ * "degraded" by a soft dependency like a missing dev tool), 503 when a critical
+ * check fails. Per-check `detail` strings can hint at config, so they're only
+ * exposed outside production.
+ */
 export async function GET() {
-  const missing = missingEnv();
-  let database: "ok" | "error" = "ok";
-  let databaseError: string | undefined;
+  const report = await getHealth();
+  const exposeDetail = process.env.NODE_ENV !== "production";
 
-  try {
-    await db.execute(sql`select 1`);
-  } catch (err) {
-    database = "error";
-    databaseError = err instanceof Error ? err.message : String(err);
-  }
+  const shape = (c: Check) =>
+    exposeDetail ? c : { ok: c.ok };
 
-  const ok = missing.length === 0 && database === "ok";
   return Response.json(
     {
-      ok,
-      service: "findling",
-      database,
-      missingEnv: missing,
-      ...(databaseError && process.env.NODE_ENV !== "production" ? { databaseError } : {}),
+      ok: report.ok,
+      status: report.status,
+      service: report.service,
+      checks: {
+        env: shape(report.checks.env),
+        database: shape(report.checks.database),
+        storage: shape(report.checks.storage),
+        payment: shape(report.checks.payment),
+        embedding: shape(report.checks.embedding),
+        media: shape(report.checks.media),
+      },
     },
     {
-      status: ok ? 200 : 503,
+      status: report.ok ? 200 : 503,
       headers: { "Cache-Control": "no-store" },
     },
   );

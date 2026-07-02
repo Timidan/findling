@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { getAgentRunTrace, getLatestSettledRunId } from "@/server/agent/trace";
 import { traceMetadata } from "@/server/agent/trace-metadata";
+import { isUuid } from "@/server/http/uuid";
 import { getCurrentUserId, getSessionUser } from "@/server/auth/current-user";
 import { SiteHeader } from "@/components/site/site-header";
 import { UsdcIcon } from "@/components/brand/usdc";
@@ -31,6 +32,7 @@ export async function generateMetadata({
     if (!latest) return traceMetadata(null);
     runId = latest;
   }
+  if (!isUuid(runId)) return traceMetadata(null);
   return traceMetadata(await getAgentRunTrace(runId, viewerId));
 }
 
@@ -49,6 +51,7 @@ export default async function TracePage({
     if (!latest) notFound();
     runId = latest;
   }
+  if (!isUuid(runId)) notFound();
   const t = await getAgentRunTrace(runId, viewerId);
   if (!t) notFound();
 

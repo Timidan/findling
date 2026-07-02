@@ -7,6 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { runAgentSearch } from "@/server/agent/agent";
 import { normalizeAgentSearchCommand } from "@/server/agent/commands";
 import { getActor } from "@/server/auth/current-user";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,9 @@ export async function POST(req: NextRequest) {
   if (!actor) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
+
+  const limited = await enforceRateLimit("search", actor.userId);
+  if (limited) return limited;
 
   const command = normalizeAgentSearchCommand(await req.json().catch(() => null));
   if (!command.ok) {

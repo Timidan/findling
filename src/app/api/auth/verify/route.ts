@@ -7,6 +7,7 @@ import {
   NONCE_COOKIE,
 } from "@/server/auth/siwe";
 import { setSession } from "@/server/auth/session";
+import { enforceRateLimit, clientIp } from "@/server/ratelimit/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+  const limited = await enforceRateLimit("authVerify", clientIp(req));
+  if (limited) return limited;
   const domain = resolveAuthDomain(req.headers.get("host"));
   const boundNonce = req.cookies.get(NONCE_COOKIE)?.value ?? null;
   try {

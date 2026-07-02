@@ -11,6 +11,8 @@ import {
   type ActivateListingInput,
   type ActivateListingSummary,
 } from "@/server/claimable/activate";
+import { enforceRateLimit, clientIp } from "@/server/ratelimit/rate-limit";
+import { isSameOrigin } from "@/server/auth/csrf";
 
 export const runtime = "nodejs";
 
@@ -83,8 +85,13 @@ export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ listingId: string }> },
 ) {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: "bad_origin" }, { status: 403 });
+  }
   const { getActor } = await import("@/server/auth/current-user");
   const actor = await getActor(req);
+  const limited = await enforceRateLimit("mutation", actor?.userId ?? clientIp(req));
+  if (limited) return limited;
   const { listingId } = await ctx.params;
   const body = await req.json().catch(() => ({}));
   return activateStartResponse(actor, listingId, body);

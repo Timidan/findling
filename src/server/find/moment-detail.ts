@@ -25,7 +25,7 @@ export interface MomentDetail {
   priceUsd: string;
   usageType: string;
   licence: string;
-  posterUrl: string;
+  posterUrl: string | null;
   previewUrl: string;
 }
 
@@ -65,10 +65,20 @@ export async function getMomentDetail(momentId: string): Promise<MomentDetail | 
       .where(eq(users.id, moment.creatorId))
   )[0];
 
-  const previewUrl = await supabaseStorage.createSignedDownloadUrl(
-    moment.previewStorageKey,
-    PREVIEW_SIGNED_TTL_SECONDS,
-  );
+  // previewStorageKey -> the watermarked video; posterStorageKey -> a still .jpg
+  // thumbnail (safe to expose). The clip key is NEVER signed here.
+  const [previewUrl, posterUrl] = await Promise.all([
+    supabaseStorage.createSignedDownloadUrl(
+      moment.previewStorageKey,
+      PREVIEW_SIGNED_TTL_SECONDS,
+    ),
+    moment.posterStorageKey
+      ? supabaseStorage.createSignedDownloadUrl(
+          moment.posterStorageKey,
+          PREVIEW_SIGNED_TTL_SECONDS,
+        )
+      : Promise.resolve(null),
+  ]);
   if (!previewUrl) return null;
 
   return {
@@ -82,7 +92,7 @@ export async function getMomentDetail(momentId: string): Promise<MomentDetail | 
     priceUsd: moment.priceUsdSnapshot,
     usageType: moment.usageType,
     licence: licenceLabel(moment.licenseSummary),
-    posterUrl: previewUrl,
+    posterUrl,
     previewUrl,
   };
 }

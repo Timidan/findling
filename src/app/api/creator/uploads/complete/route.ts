@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { revalidateTag } from "next/cache";
 import { requireUserId } from "@/server/auth/current-user";
+import { isSameOrigin } from "@/server/auth/csrf";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
+import { markUploadIntentCompleted } from "@/server/uploads/upload-intent";
 import {
   MAX_UPLOAD_BYTES,
   sniffVideoContainer,
@@ -26,12 +29,19 @@ export const maxDuration = 120; // server-side ffprobe over the stored object
 const KEY_NAME = /^[0-9a-fA-F-]{36}\.(mp4|webm)$/;
 
 export async function POST(req: NextRequest) {
+  // Cookie-authed browser mutation — reject cross-origin (CSRF defense-in-depth).
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: "bad_origin" }, { status: 403 });
+  }
   let userId: string;
   try {
     userId = await requireUserId();
   } catch {
     return NextResponse.json({ error: "Sign in to upload." }, { status: 401 });
   }
+
+  const limited = await enforceRateLimit("mutation", userId);
+  if (limited) return limited;
 
   const body = (await req.json().catch(() => null)) as {
     storageKey?: string;
@@ -156,6 +166,15 @@ export async function POST(req: NextRequest) {
       attestationText: UPLOAD_ATTESTATION_TEXT,
       attestationVersion: UPLOAD_ATTESTATION_VERSION,
     });
+
+    // Object is now a real deliverable — take it off the sweeper's list. Best-
+    // effort: the upload already succeeded, so an intent-table hiccup must not
+    // fail the request (the worst case is a harmless 'pending' row).
+    try {
+      await markUploadIntentCompleted(storageKey);
+    } catch (e) {
+      console.error("[uploads/complete] markUploadIntentCompleted failed:", e);
+    }
 
     // the studio catalog (cached, tag "studio-catalog") now has a new draft moment
     revalidateTag("studio-catalog", "max");

@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { requireUserId } from "@/server/auth/current-user";
+import { isSameOrigin } from "@/server/auth/csrf";
 import {
   buildAuthUrl,
   issueYoutubeOAuthState,
@@ -9,7 +10,10 @@ import {
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: "bad_origin" }, { status: 403 });
+  }
   let userId: string;
   try {
     userId = await requireUserId();

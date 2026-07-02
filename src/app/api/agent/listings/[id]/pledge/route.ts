@@ -9,6 +9,7 @@ import {
   type DemandIntentView,
   type PledgeIntentInput,
 } from "../../../../../../server/claimable/pledges";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -89,6 +90,10 @@ export async function POST(
 ) {
   const { getActor } = await import("../../../../../../server/auth/current-user");
   const actor = await getActor(req);
+  if (actor) {
+    const limited = await enforceRateLimit("mutation", actor.userId);
+    if (limited) return limited;
+  }
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
   return pledgeListingResponse(actor, id, body);

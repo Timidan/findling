@@ -38,6 +38,7 @@ import {
 import { getEarnings } from "@/server/ledger/earnings";
 import { requestWithdrawal, NothingToWithdrawError } from "@/server/ledger/withdrawal";
 import { getPayoutProvider } from "@/server/payment";
+import { rateLimit } from "@/server/ratelimit/rate-limit";
 import { verifyAgentKey, type AgentAuth } from "@/server/auth/agent-credential";
 
 function result(data: unknown) {
@@ -326,6 +327,15 @@ export function createFindlingMcpServer(
     async (args) => {
       const agent = await agentAuth();
       if (!agent) return result(UNAUTH);
+      // Per-identity throttle on the money mutation. The hosted /api/mcp endpoint
+      // only rate-limits by IP at the transport; bound withdraws per agent too.
+      const withdrawLimit = await rateLimit("withdraw", agent.userId);
+      if (!withdrawLimit.allowed) {
+        return result({
+          error: "rate_limited",
+          retryAfterSeconds: withdrawLimit.retryAfterSec,
+        });
+      }
       const command = normalizeWithdrawCommand(args);
       if (!command.ok) return result({ error: command.error });
       const user = (await db.select().from(users).where(eq(users.id, agent.userId)))[0];

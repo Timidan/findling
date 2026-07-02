@@ -15,6 +15,7 @@ import {
   type CreateListingResult,
   type ListListingsResult,
 } from "../../../../server/claimable/listings";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -98,6 +99,10 @@ export async function listListingsResponse(
 export async function POST(req: NextRequest) {
   const { getActor } = await import("../../../../server/auth/current-user");
   const actor = await getActor(req);
+  if (actor) {
+    const limited = await enforceRateLimit("mutation", actor.userId);
+    if (limited) return limited;
+  }
   const body = await req.json().catch(() => null);
   return createListingResponse(actor, body, new URL(req.url).origin);
 }

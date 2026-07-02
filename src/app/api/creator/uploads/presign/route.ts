@@ -1,18 +1,28 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { randomUUID } from "node:crypto";
 import { requireUserId } from "@/server/auth/current-user";
+import { isSameOrigin } from "@/server/auth/csrf";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 import { validateUpload } from "@/server/storage/validation";
 import { supabaseStorage } from "@/server/storage/supabase-storage";
+import { recordUploadIntent } from "@/server/uploads/upload-intent";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  // Cookie-authed browser mutation — reject cross-origin (CSRF defense-in-depth).
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: "bad_origin" }, { status: 403 });
+  }
   let userId: string;
   try {
     userId = await requireUserId();
   } catch {
     return NextResponse.json({ error: "Sign in to upload." }, { status: 401 });
   }
+
+  const limited = await enforceRateLimit("presign", userId);
+  if (limited) return limited;
 
   const body = (await req.json().catch(() => null)) as {
     contentType?: string;
@@ -46,6 +56,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const target = await supabaseStorage.createUploadTarget({ storageKey });
+    // Track the intended key so a never-finalized object gets swept later. Not
+    // fatal if it fails — the sweeper only misses this one orphan, so we log and
+    // still return the (working) upload target rather than failing the upload.
+    try {
+      await recordUploadIntent({ userId, storageKey, contentType });
+    } catch (e) {
+      console.error("[uploads/presign] recordUploadIntent failed:", e);
+    }
     return NextResponse.json(target);
   } catch {
     return NextResponse.json(

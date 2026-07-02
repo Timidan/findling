@@ -20,7 +20,20 @@ export type X402Settlement =
       payerAddress: string;
       network: string;
     }
-  | { ok: false; network: string; reason?: string };
+  | {
+      ok: false;
+      network: string;
+      reason?: string;
+      /**
+       * True when the facilitator reported `success:true` but we could NOT obtain
+       * canonical proof (tx hash / payer), or the settle landed on the wrong
+       * network — i.e. funds MAY have moved. The caller MUST keep the grant cap
+       * reserved and hold the reservation for reconciliation (NEVER release it),
+       * exactly like a settle() exception. False/undefined = a clean failure (no
+       * funds moved), safe to release the cap.
+       */
+      unknownOutcome?: boolean;
+    };
 
 export interface X402SellerPaymentAdapter {
   readonly name: PaymentProviderName;

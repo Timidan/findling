@@ -22,10 +22,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("../db/client", () => ({ db: mocks.db }));
 vi.mock("@/server/db/client", () => ({ db: mocks.db }));
-vi.mock("@/server/db/schema", () => ({
-  assets: {},
-  moments: {},
-}));
 vi.mock("../storage/supabase-storage", () => ({
   supabaseStorage: {
     createSignedDownloadUrls: vi.fn(async (keys: string[]) => {
@@ -68,6 +64,7 @@ type AvailableRow = {
     licenseSummary: string | null;
     clipStorageKey: string | null;
     previewStorageKey: string | null;
+    posterStorageKey: string | null;
     ownershipVerified: boolean;
     attestationAt: Date | null;
     createdAt: Date;
@@ -115,6 +112,12 @@ function signRows(rows: AvailableRow[]) {
         `https://preview.example/${row.moment.previewStorageKey}`,
       );
     }
+    if (row.moment.posterStorageKey) {
+      mocks.previewUrls.set(
+        row.moment.posterStorageKey,
+        `https://poster.example/${row.moment.posterStorageKey}`,
+      );
+    }
   }
 }
 
@@ -136,6 +139,7 @@ function availableRow(
       licenseSummary: "CC BY",
       clipStorageKey: `full-clips/${id}.mp4`,
       previewStorageKey: `previews/${id}.mp4`,
+      posterStorageKey: `posters/${id}.jpg`,
       ownershipVerified: true,
       attestationAt: new Date("2026-06-24T10:00:00.000Z"),
       createdAt: new Date("2026-06-24T10:00:00.000Z"),
@@ -219,10 +223,31 @@ describe("getLicensableFeed", () => {
         durationMs: 12_000,
         priceMicroUsdc: 250_000,
         licence: "CC BY",
-        posterUrl: "https://preview.example/previews/ok.mp4",
+        posterUrl: "https://poster.example/posters/ok.jpg",
         previewUrl: "https://preview.example/previews/ok.mp4",
       },
     ]);
+  });
+
+  it("derives posterUrl from the poster image, not the preview video, and is null without one", async () => {
+    const rows = [
+      availableRow("with-poster"),
+      availableRow("no-poster", { posterStorageKey: null }),
+    ];
+    signRows(rows);
+    queueRows(rows);
+
+    const items = await getLicensableFeed({ limit: 10 });
+
+    const withPoster = items.find((i) => i.id === "with-poster");
+    const noPoster = items.find((i) => i.id === "no-poster");
+    // poster is the .jpg image, never the .mp4 preview
+    expect(withPoster?.posterUrl).toBe("https://poster.example/posters/with-poster.jpg");
+    expect(withPoster?.posterUrl).not.toContain(".mp4");
+    expect(withPoster?.previewUrl).toBe("https://preview.example/previews/with-poster.mp4");
+    // no poster key -> null (card falls back to placeholder), never the video
+    expect(noPoster?.posterUrl).toBeNull();
+    expect(noPoster?.previewUrl).toBe("https://preview.example/previews/no-poster.mp4");
   });
 
   it("embeds a non-empty query and preserves cosine-ranked row order", async () => {

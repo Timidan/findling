@@ -10,6 +10,7 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { curations, moments } from "@/server/db/schema";
+import { scheduleReembed } from "@/server/search/reembed-queue";
 
 export interface SubmitCurationInput {
   momentId: string;
@@ -41,6 +42,10 @@ export async function submitCuration(input: SubmitCurationInput) {
     throw new Error("self_curation_not_allowed");
   }
 
+  // One curation per (finder, moment) — enforced by curations_moment_finder_uq.
+  // Re-curating the same moment UPDATES the finder's existing row in place rather
+  // than minting duplicates (which would let a finder spam re-embeds / bloat the
+  // 12% land-grab). momentId/finderId/shareSlug are preserved on conflict.
   const [curation] = await db
     .insert(curations)
     .values({
@@ -53,20 +58,24 @@ export async function submitCuration(input: SubmitCurationInput) {
       sourceSurface: input.sourceSurface ?? "feed",
       shareSlug: input.shareSlug ?? generateShareSlug(),
     })
+    .onConflictDoUpdate({
+      target: [curations.momentId, curations.finderId],
+      set: {
+        tags: input.tags ?? [],
+        caption: input.caption ?? null,
+        useCaseNote: input.useCaseNote ?? null,
+        relevanceText: input.relevanceText ?? null,
+        sourceSurface: input.sourceSurface ?? "feed",
+        updatedAt: new Date(),
+      },
+    })
     .returning();
 
-  // If the moment is already live, fold this new curation signal into search NOW.
-  // The embedding source text includes curation tags/captions, so without this a
-  // finder's tags wouldn't affect agent discovery until a manual re-embed.
-  // Best-effort, and a dynamic import keeps the search module out of curation's
-  // static import graph; a published moment stays published if a transient embed fails.
+  // A published moment's discovery text now includes this curation. Re-embed OFF
+  // the request path, debounced/coalesced (see search/reembed-queue), so a burst
+  // of curations can't storm the embedding provider + HNSW index per call.
   if (moment.status === "published") {
-    try {
-      const { upsertMomentEmbedding } = await import("@/server/search/embeddings");
-      await upsertMomentEmbedding(input.momentId);
-    } catch (e) {
-      console.error("[submitCuration] re-embed after curation failed:", e);
-    }
+    scheduleReembed(input.momentId);
   }
 
   return curation;

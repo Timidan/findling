@@ -23,6 +23,8 @@ import {
 } from "@/server/ledger/settlement";
 import {
   createPendingPurchaseReservation,
+  findHeldReservationForPaymentHeader,
+  hashPaymentHeader,
   markPurchaseReservationSettled,
   markPurchaseReservationUnknown,
   releasePendingPurchaseReservation,
@@ -201,6 +203,18 @@ export async function runLicensePurchase(
     return response({ error: "usage_not_allowed" }, 403);
   }
 
+  // Retry idempotency: if THIS exact signed payment already has a reservation
+  // held for reconciliation (an earlier ambiguous/unknown settle outcome — see
+  // the settle branches below), do NOT re-reserve the cap or re-settle. Repeated
+  // retries would otherwise drain the grant across many held reservations and
+  // risk a double charge. Surface it as a conflict pending reconciliation.
+  const heldReservation = await findHeldReservationForPaymentHeader(
+    hashPaymentHeader(input.paymentHeader),
+  );
+  if (heldReservation) {
+    return response({ error: "settlement_pending_reconciliation" }, 409);
+  }
+
   const reserved = await reserveGrantCap(grant.id, price);
   if (!reserved) {
     const freshGrant = (
@@ -278,6 +292,25 @@ export async function runLicensePurchase(
     return response({ error: "settlement_error" }, 502);
   }
   if (!settlement.ok) {
+    if (settlement.unknownOutcome) {
+      // The facilitator reported success but returned no verifiable proof (or a
+      // mismatched network): funds MAY have already moved on-chain. Keep the grant
+      // cap RESERVED and hold the reservation for reconciliation — never release
+      // it, or the buyer could re-spend a cap whose funds already left. Mirrors
+      // the settle-threw path (markPurchaseReservationUnknown).
+      await markPurchaseReservationUnknown({
+        reservationId: reservation.id,
+        reason: `settle_ambiguous_success_unknown_outcome: ${
+          settlement.reason ?? "no proof"
+        }`,
+      });
+      console.error(
+        "[license purchase] settle reported success without verifiable proof; grant cap kept reserved for reconciliation:",
+        settlement.reason,
+      );
+      return response({ error: "settlement_unknown", reason: settlement.reason }, 502);
+    }
+    // Clean failure — no funds moved — safe to release the reserved cap.
     await releasePendingPurchaseReservation({
       reservationId: reservation.id,
       note: settlement.reason ?? "provider returned not settled",

@@ -7,6 +7,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { receipts, purchases, users } from "@/server/db/schema";
+import { publicHandle } from "@/server/users/public-handle";
 
 export interface ReceiptView {
   receiptCode: string;
@@ -30,10 +31,6 @@ export interface ReceiptView {
   settledAt: string;
 }
 
-function handle(displayName: string | null, email: string): string {
-  return displayName ?? email.split("@")[0];
-}
-
 export async function getReceiptBySlug(slug: string): Promise<ReceiptView | null> {
   const r = (
     await db.select().from(receipts).where(eq(receipts.publicSlug, slug))
@@ -44,11 +41,16 @@ export async function getReceiptBySlug(slug: string): Promise<ReceiptView | null
     await db.select().from(purchases).where(eq(purchases.id, r.purchaseId))
   )[0];
 
+  const handleCols = {
+    username: users.username,
+    displayName: users.displayName,
+    walletAddress: users.walletAddress,
+  };
   const creator = r.creatorId
-    ? (await db.select().from(users).where(eq(users.id, r.creatorId)))[0]
+    ? (await db.select(handleCols).from(users).where(eq(users.id, r.creatorId)))[0]
     : undefined;
   const finder = r.finderId
-    ? (await db.select().from(users).where(eq(users.id, r.finderId)))[0]
+    ? (await db.select(handleCols).from(users).where(eq(users.id, r.finderId)))[0]
     : undefined;
 
   return {
@@ -68,8 +70,8 @@ export async function getReceiptBySlug(slug: string): Promise<ReceiptView | null
     creatorMicroUsdc: r.creatorMicroUsdc,
     finderMicroUsdc: r.finderMicroUsdc,
     platformMicroUsdc: r.platformMicroUsdc,
-    creatorHandle: creator ? handle(creator.displayName, creator.email) : null,
-    finderHandle: finder ? handle(finder.displayName, finder.email) : null,
+    creatorHandle: creator ? publicHandle(creator, "creator") : null,
+    finderHandle: finder ? publicHandle(finder, "finder") : null,
     settledAt: (purchase?.settledAt ?? r.createdAt).toISOString(),
   };
 }

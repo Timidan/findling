@@ -5,6 +5,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getAgentRun } from "@/server/agent/agent";
 import { getActor } from "@/server/auth/current-user";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,8 @@ export async function GET(
   if (!actor) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   }
+  const limited = await enforceRateLimit("mutation", actor.userId);
+  if (limited) return limited;
   const { agentRunId } = await ctx.params;
   // reject non-UUID ids before they reach Postgres (avoids a 22P02 500)
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(agentRunId)) {

@@ -13,6 +13,7 @@ import {
   type ActivateListingInput,
   type ActivateListingSummary,
 } from "../../../../../server/claimable/activate";
+import { enforceRateLimit, clientIp } from "@/server/ratelimit/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -105,6 +106,8 @@ export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ token: string }> },
 ) {
+  const limited = await enforceRateLimit("claim", clientIp(req));
+  if (limited) return limited;
   const { getActor } = await import("../../../../../server/auth/current-user");
   const actor = await getActor(req);
   const { token } = await ctx.params;

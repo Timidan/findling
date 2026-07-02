@@ -7,6 +7,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { runLicensePurchase } from "@/server/license-purchase/license-purchase";
 import { getGatewayProvider } from "@/server/payment";
+import { isUuid } from "@/server/http/uuid";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,7 @@ export async function GET(
   ctx: { params: Promise<{ momentId: string }> },
 ) {
   const { momentId } = await ctx.params;
+  if (!isUuid(momentId)) return json({ error: "moment_not_available" }, 404);
   const url = new URL(req.url);
   const result = await runLicensePurchase({
     momentId,

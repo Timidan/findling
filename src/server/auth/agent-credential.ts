@@ -5,7 +5,7 @@
  * agent surface and resolved to the agent's users row.
  */
 import { createHash, randomBytes } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, count, eq, gt, isNull, or } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { agentCredentials, users } from "@/server/db/schema";
 
@@ -30,6 +30,28 @@ export async function issueAgentKey(
     expiresAt: new Date(Date.now() + KEY_TTL_DAYS * 24 * 60 * 60 * 1000),
   });
   return key;
+}
+
+/**
+ * Count a user's currently-usable agent keys: not revoked, and either no expiry
+ * or an expiry still in the future. This is what the self-serve mint quota
+ * checks against so one account can't accrue unbounded live keys.
+ */
+export async function activeAgentKeyCount(userId: string): Promise<number> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(agentCredentials)
+    .where(
+      and(
+        eq(agentCredentials.userId, userId),
+        isNull(agentCredentials.revokedAt),
+        or(
+          isNull(agentCredentials.expiresAt),
+          gt(agentCredentials.expiresAt, new Date()),
+        ),
+      ),
+    );
+  return row?.n ?? 0;
 }
 
 /** Revoke an agent credential (idempotent). */

@@ -7,6 +7,7 @@ import {
   listPledges,
   type ListPledgesResult,
 } from "../../../../server/claimable/pledges";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -45,5 +46,9 @@ export async function listPledgesResponse(
 export async function GET(req: NextRequest) {
   const { getActor } = await import("../../../../server/auth/current-user");
   const actor = await getActor(req);
+  if (actor) {
+    const limited = await enforceRateLimit("mutation", actor.userId);
+    if (limited) return limited;
+  }
   return listPledgesResponse(actor);
 }

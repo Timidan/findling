@@ -14,6 +14,10 @@ import { refreshAccessToken } from "@/server/youtube/oauth";
 import { getVideoChannelId } from "@/server/youtube/api";
 import { tokenCipher } from "@/server/crypto/token-crypto";
 import { runClipJob } from "@/server/clip/clip-worker";
+import { acquireClipSlot, ClipCapacityError } from "@/server/clip/concurrency";
+import { supabaseStorage } from "@/server/storage/supabase-storage";
+import { isSameOrigin } from "@/server/auth/csrf";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 import { MAX_MOMENT_MS } from "@/server/clip/ffmpeg";
 import { parsePriceMicroUsdcInput, PriceInputError } from "@/server/money/price";
 import {
@@ -25,12 +29,20 @@ export const runtime = "nodejs";
 export const maxDuration = 120; // clip jobs (yt-dlp + ffmpeg) can take a bit
 
 export async function POST(req: NextRequest) {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: "bad_origin" }, { status: 403 });
+  }
+
   let userId: string;
   try {
     userId = await requireUserId();
   } catch {
     return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   }
+
+  // Heavy path (yt-dlp + ffmpeg): throttle per user before doing any work.
+  const limited = await enforceRateLimit("importVideo", userId);
+  if (limited) return limited;
 
   const body = (await req.json().catch(() => null)) as {
     videoId?: string;
@@ -116,49 +128,84 @@ export async function POST(req: NextRequest) {
   }
   const priceUsdSnapshot = priceUsdSnapshotFor(priceMicroUsdc);
 
-  // asset + queued clip job commit atomically (no orphan asset on failure)
-  const { asset, job } = await startYoutubeImport({
-    creatorId: userId,
-    title: title.trim(),
-    videoId,
-    channelId: user.youtubeChannelId,
-    channelTitle: user.youtubeChannelTitle,
-    startMs,
-    endMs,
-    attestationText: YOUTUBE_ATTESTATION_TEXT,
-    attestationVersion: YOUTUBE_ATTESTATION_VERSION,
-  });
-
-  let result;
+  // Bound heavy clip processing on the single VPS: fail fast with 503 when the
+  // global / per-user concurrency cap is full instead of piling up subprocess
+  // trees that would OOM/timeout together.
+  let slot;
   try {
-    // Inline for the single-container MVP; a queue would decouple this.
-    result = await runClipJob(job.id);
-  } catch {
-    return NextResponse.json(
-      { error: "Clip processing failed.", clipJobId: job.id },
-      { status: 502 },
-    );
+    slot = acquireClipSlot(userId);
+  } catch (e) {
+    if (e instanceof ClipCapacityError) {
+      return NextResponse.json(
+        { error: "Too many imports in progress — try again shortly." },
+        { status: 503, headers: { "Retry-After": "30" } },
+      );
+    }
+    throw e;
   }
 
-  const moment = await completeImportedMoment({
-    assetId: asset.id,
-    creatorId: userId,
-    clipJobId: job.id,
-    title: title.trim(),
-    startMs,
-    endMs,
-    durationMs: result.durationMs,
-    clipStorageKey: result.clipStorageKey,
-    posterStorageKey: result.posterStorageKey,
-    priceMicroUsdc,
-    priceUsdSnapshot,
-  });
+  try {
+    // asset + queued clip job commit atomically (no orphan asset on failure)
+    const { asset, job } = await startYoutubeImport({
+      creatorId: userId,
+      title: title.trim(),
+      videoId,
+      channelId: user.youtubeChannelId,
+      channelTitle: user.youtubeChannelTitle,
+      startMs,
+      endMs,
+      attestationText: YOUTUBE_ATTESTATION_TEXT,
+      attestationVersion: YOUTUBE_ATTESTATION_VERSION,
+    });
 
-  return NextResponse.json({
-    assetId: asset.id,
-    clipJobId: job.id,
-    momentId: moment.id,
-    durationMs: result.durationMs,
-    clipStorageKey: result.clipStorageKey,
-  });
+    let result;
+    try {
+      // Inline for the single-container MVP; a queue would decouple this.
+      result = await runClipJob(job.id);
+    } catch {
+      return NextResponse.json(
+        { error: "Clip processing failed.", clipJobId: job.id },
+        { status: 502 },
+      );
+    }
+
+    let moment;
+    try {
+      moment = await completeImportedMoment({
+        assetId: asset.id,
+        creatorId: userId,
+        clipJobId: job.id,
+        title: title.trim(),
+        startMs,
+        endMs,
+        durationMs: result.durationMs,
+        clipStorageKey: result.clipStorageKey,
+        posterStorageKey: result.posterStorageKey,
+        priceMicroUsdc,
+        priceUsdSnapshot,
+      });
+    } catch (e) {
+      // Finalize failed AFTER a successful clip — remove the now-orphaned storage
+      // objects so they don't leak (the clip job row already reflects success).
+      await supabaseStorage.removeObject(result.clipStorageKey).catch(() => {});
+      if (result.posterStorageKey) {
+        await supabaseStorage.removeObject(result.posterStorageKey).catch(() => {});
+      }
+      console.error("[youtube import] finalize failed after clip; orphaned objects removed:", e);
+      return NextResponse.json(
+        { error: "Import finalization failed.", clipJobId: job.id },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json({
+      assetId: asset.id,
+      clipJobId: job.id,
+      momentId: moment.id,
+      durationMs: result.durationMs,
+      clipStorageKey: result.clipStorageKey,
+    });
+  } finally {
+    slot.release();
+  }
 }

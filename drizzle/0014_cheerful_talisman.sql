@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "curations_moment_finder_uq" ON "curations" USING btree ("moment_id","finder_id");

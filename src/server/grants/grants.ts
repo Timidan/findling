@@ -5,7 +5,7 @@
  * types); the x402 unlock route then binds settlement to that key and reserves
  * against the cap atomically. No private key is ever stored — only the address.
  */
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { buyerSessionGrants } from "@/server/db/schema";
 
@@ -110,6 +110,24 @@ export async function listGrants(buyerId: string) {
     .from(buyerSessionGrants)
     .where(eq(buyerSessionGrants.buyerId, buyerId))
     .orderBy(desc(buyerSessionGrants.createdAt));
+}
+
+/**
+ * Count a buyer's currently-active grants — what the self-serve creation quota
+ * checks against so one account can't spin up unbounded funded-delegate
+ * envelopes. Only 'active' grants count; revoked/expired/exhausted ones don't.
+ */
+export async function activeGrantCount(buyerId: string): Promise<number> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(buyerSessionGrants)
+    .where(
+      and(
+        eq(buyerSessionGrants.buyerId, buyerId),
+        eq(buyerSessionGrants.status, "active"),
+      ),
+    );
+  return row?.n ?? 0;
 }
 
 /**

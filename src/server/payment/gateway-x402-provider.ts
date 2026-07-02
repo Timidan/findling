@@ -221,16 +221,36 @@ export class GatewayX402PaymentProvider implements X402SellerPaymentAdapter {
       network?: string;
       errorReason?: string;
     };
-    if (!s.success || !s.transaction || !s.payer) {
+    if (!s.success) {
+      // Clean failure — the facilitator reports no settlement, so no funds moved.
+      // Safe for the caller to release the reserved grant cap.
       return {
         ok: false,
         network: this.network,
-        reason: s.errorReason ?? (!s.transaction ? "missing_transaction" : "settle_failed"),
+        reason: s.errorReason ?? "settle_failed",
+        unknownOutcome: false,
       };
     }
-    // settlement network must be what we required
+    // success:true but we cannot obtain canonical proof (tx hash / payer): funds
+    // MAY have moved. Surface as an UNKNOWN outcome so the caller keeps the cap
+    // reserved and holds the reservation for reconciliation (never releases it).
+    if (!s.transaction || !s.payer) {
+      return {
+        ok: false,
+        network: this.network,
+        reason: !s.transaction ? "success_without_transaction" : "success_without_payer",
+        unknownOutcome: true,
+      };
+    }
+    // success:true on a DIFFERENT network than required — funds moved, but not
+    // where we required. Also ambiguous: hold for reconciliation, don't release.
     if (s.network && s.network !== requirements.network) {
-      return { ok: false, network: this.network, reason: "network_mismatch" };
+      return {
+        ok: false,
+        network: this.network,
+        reason: "network_mismatch_after_success",
+        unknownOutcome: true,
+      };
     }
     return {
       ok: true,

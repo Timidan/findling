@@ -4,6 +4,8 @@
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { requireUserId, UnauthenticatedError } from "@/server/auth/current-user";
+import { isSameOrigin } from "@/server/auth/csrf";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 import {
   setMomentPrice,
   MIN_PRICE_MICRO_USDC,
@@ -18,6 +20,10 @@ export async function PATCH(
   req: NextRequest,
   ctx: { params: Promise<{ momentId: string }> },
 ) {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ error: "bad_origin" }, { status: 403 });
+  }
+
   let userId: string;
   try {
     userId = await requireUserId();
@@ -27,6 +33,9 @@ export async function PATCH(
     }
     throw e;
   }
+
+  const limited = await enforceRateLimit("mutation", userId);
+  if (limited) return limited;
 
   const { momentId } = await ctx.params;
   if (!UUID.test(momentId)) {

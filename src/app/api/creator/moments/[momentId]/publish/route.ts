@@ -11,6 +11,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { revalidateTag } from "next/cache";
 import { requireUserId, UnauthenticatedError } from "@/server/auth/current-user";
 import { isSameOrigin } from "@/server/auth/csrf";
+import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
 import { publishMoment } from "@/server/catalog/catalog";
 import { upsertMomentEmbedding, markEmbeddingFailed } from "@/server/search/embeddings";
 
@@ -40,6 +41,9 @@ export async function POST(
     }
     throw e;
   }
+
+  const limited = await enforceRateLimit("mutation", userId);
+  if (limited) return limited;
 
   const { momentId } = await ctx.params;
   if (!UUID.test(momentId)) {
