@@ -24,9 +24,16 @@ const TABS = [
   { k: "trending", label: "Trending" },
 ] as const;
 
+const TAB_HELP: Record<string, string> = {
+  all: "Browse clips ready to use and requests creators can fulfill.",
+  available: "These clips are ready to use now after payment.",
+  wanted: "These are requests. Creators can claim them, upload the clip, and get paid.",
+  trending: "Clips and requests getting attention right now.",
+};
+
 const FILTER_GROUPS: { key: string; label: string; opts: [string, string][] }[] = [
   { key: "usage", label: "Usage", opts: [["Video embed", "video_embed"], ["Newsletter", "newsletter"], ["Social post", "social_post"], ["Internal", "internal_reference"]] },
-  { key: "licence", label: "License", opts: [["CC-BY", "CC BY"], ["CC-BY-SA", "CC BY-SA"], ["CC0", "CC0"], ["Standard", "Standard"]] },
+  { key: "licence", label: "Usage rights", opts: [["CC-BY", "CC BY"], ["CC-BY-SA", "CC BY-SA"], ["CC0", "CC0"], ["Standard", "Standard"]] },
   { key: "src", label: "Source", opts: [["Upload", "upload"], ["YouTube", "youtube"], ["PeerTube", "peertube"]] },
   { key: "maxDur", label: "Max duration", opts: [["Under 10s", "10000"], ["Under 30s", "30000"]] },
   { key: "maxPrice", label: "Max price", opts: [["≤ $0.05", "50000"], ["≤ $0.10", "100000"], ["≤ $0.25", "250000"]] },
@@ -83,8 +90,8 @@ export function FindShell({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search a vibe, scene, or use case..."
-          aria-label="Search moments"
+          placeholder="Search by scene, vibe, or use case..."
+          aria-label="Search clips"
           className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
         <button type="submit" className="hidden rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground sm:inline">
@@ -121,6 +128,9 @@ export function FindShell({
           </button>
         </div>
       </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {TAB_HELP[activeTab] ?? TAB_HELP.all}
+      </p>
 
       {/* Filters — a real toggle button + a grouped panel */}
       <div className="mt-4">
@@ -170,7 +180,7 @@ export function FindShell({
 
       {items.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
-          <p className="font-display text-2xl tracking-tight">No moments found</p>
+          <p className="font-display text-2xl tracking-tight">No clips found</p>
           <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">Try a different search, or clear the filters.</p>
         </div>
       ) : (

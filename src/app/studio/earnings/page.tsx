@@ -34,7 +34,7 @@ export default async function EarningsPage() {
           Connect your wallet
         </h1>
         <p className="text-sm text-muted-foreground">
-          Sign in with your wallet to view your accrued USDC earnings.
+          Sign in with your wallet to view USDC you have earned.
         </p>
       </div>
     );
@@ -94,13 +94,13 @@ export default async function EarningsPage() {
         <RoleLedger
           icon={<FilmSlate weight="duotone" className="size-5" />}
           title="As a creator"
-          blurb="80% of every license on the moments you publish."
+          blurb="80% when people or agents use clips you publish."
           data={earnings.creator}
         />
         <RoleLedger
           icon={<Sparkle weight="duotone" className="size-5" />}
           title="As a finder"
-          blurb="12% when an agent licenses a moment you surfaced."
+          blurb="12% when an agent uses a clip you surfaced."
           data={earnings.finder}
         />
       </div>

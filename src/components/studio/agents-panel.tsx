@@ -111,22 +111,22 @@ function ReadinessBadge({
         </p>
         {ready ? (
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Your agent can authenticate and spend within grant caps. Fund the session
-            key&apos;s Gateway balance on Arc before paying. Findling does not hold those
-            funds.
+            Your agent can sign in, search, and use clips within your spending
+            caps. Fund the session key&apos;s Gateway balance on Arc before paying.
+            Findling does not hold those funds.
           </p>
         ) : (
           <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
             {!hasActiveKey && (
               <li className="flex items-center gap-1">
                 <WarningCircle weight="fill" className="size-3.5 text-amber-500" />
-                Issue an API key below
+                Create a key below
               </li>
             )}
             {!hasActiveGrant && (
               <li className="flex items-center gap-1">
                 <WarningCircle weight="fill" className="size-3.5 text-amber-500" />
-                Create a session grant to authorize spending
+                Create a grant to set spending limits
               </li>
             )}
           </ul>
@@ -199,8 +199,8 @@ function KeysSection({
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <SectionHeader
-        title="API Keys"
-        desc="Issue a key for Findling's REST and MCP APIs. You see the key once, so store it securely."
+        title="Agent keys"
+        desc="Create a key so your agent can use Findling's REST and MCP APIs. You see the key once, so store it securely."
       />
 
       <div className="flex gap-2">
@@ -223,7 +223,7 @@ function KeysSection({
           ) : (
             <Plus weight="bold" className="size-4" />
           )}
-          Issue Key
+          Create key
         </button>
       </div>
       {issueError && (
@@ -300,7 +300,7 @@ function KeysSection({
       )}
 
       {creds.length === 0 && !newKey && (
-        <p className="mt-4 text-sm text-muted-foreground">No keys yet. Issue one above.</p>
+        <p className="mt-4 text-sm text-muted-foreground">No keys yet. Create one above.</p>
       )}
     </div>
   );
@@ -399,13 +399,13 @@ function GrantsSection({
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <SectionHeader
-        title="Session Grants"
-        desc="A grant lets your agent spend USDC from a funded wallet within your caps. Fund the session key's Gateway balance on Arc before paying. Findling does not hold funds."
+        title="Spending grants"
+        desc="A grant lets your agent pay for clips from a funded wallet within your caps. Fund the session key's Gateway balance on Arc before paying. Findling does not hold funds."
       />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className={labelCls}>Session key address (funded EOA)*</label>
+          <label className={labelCls}>Session key address (funded wallet)*</label>
           <input
             type="text"
             placeholder="0x..."
@@ -427,7 +427,7 @@ function GrantsSection({
           />
         </div>
         <div>
-          <label className={labelCls}>Per-purchase cap (USDC, optional)</label>
+          <label className={labelCls}>Per-clip cap (USDC, optional)</label>
           <input
             type="number"
             placeholder="0.10"
@@ -484,7 +484,7 @@ function GrantsSection({
           ) : (
             <Plus weight="bold" className="size-4" />
           )}
-          Create Grant
+          Create grant
         </button>
         {createError && (
           <span className="flex items-center gap-1 text-xs text-destructive">
@@ -651,7 +651,7 @@ function ConnectSection({ origin }: { origin: string }) {
       <div className="mb-4 flex items-start justify-between gap-3">
         <SectionHeader
           title="Connect your agent"
-          desc="One key works in every client. Findling hosts the MCP server, so there is nothing to run locally. Add it to your AI client so it can search, license, curate, and withdraw."
+          desc="One key works in every client. Findling hosts the MCP server, so there is nothing to run locally. Add it to your AI client so it can search, use clips, curate, and withdraw."
         />
         <span className="mt-1 shrink-0 rounded-full bg-sage/15 px-2 py-0.5 text-[0.6rem] uppercase tracking-wider text-sage">
           hosted MCP

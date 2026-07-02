@@ -81,7 +81,7 @@ function AvailableCard({ item }: { item: AvailableFeedItem }) {
         <div className="mt-auto flex items-center justify-between gap-2 pt-2.5">
           <UsdcAmount micro={item.priceMicroUsdc} className="tabular gap-0.5 text-sm font-semibold" />
           <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
-            License
+            Use clip
           </span>
         </div>
       </div>
@@ -125,10 +125,12 @@ function WantedCard({ item }: { item: WantedFeedItem }) {
         <div className="mt-auto flex items-center justify-between gap-2 pt-2.5">
           <span className="min-w-0">
             <UsdcAmount micro={item.pledgedDemandMicroUsdc} className="tabular gap-0.5 text-sm font-semibold" />
-            <span className="tabular ml-1.5 text-[0.65rem] text-muted-foreground">· {item.pledgeCount} waiting</span>
+            <span className="tabular ml-1.5 text-[0.65rem] text-muted-foreground">
+              · {item.pledgeCount} {item.pledgeCount === 1 ? "request" : "requests"}
+            </span>
           </span>
           <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold">
-            Claim
+            Claim request
           </span>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { SiteHeader } from "@/components/site/site-header";
 export default function ReceiptLoading() {
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background text-foreground">
-      <SiteHeader tag="License receipt" />
+      <SiteHeader tag="Receipt" />
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-5 py-12">
         <div className="animate-pulse">
           <div className="mt-2 flex items-center gap-2.5">

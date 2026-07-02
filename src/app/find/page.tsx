@@ -23,9 +23,9 @@ const getUnifiedFeedCached = unstable_cache(
 );
 
 export const metadata: Metadata = {
-  title: "Find licensable video moments · Findling",
+  title: "Find video clips you can use · Findling",
   description:
-    "Search a vibe, scene, or use case. Rights-clean video moments available now, plus ones agents have already pledged USDC for.",
+    "Search by scene, vibe, or use case. Available clips are ready to use now. Wanted clips are requests creators can claim and get paid for.",
 };
 
 function one(v: string | string[] | undefined): string | undefined {
@@ -70,11 +70,11 @@ export default async function FindPage({
       <SiteHeader tag="Find" initialUser={initialUser} />
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-5 py-10">
         <h1 className="max-w-3xl font-display text-3xl leading-[1.06] tracking-tight text-balance sm:text-[2.6rem]">
-          Find the exact video moment you can actually license.
+          Find video clips you can use.
         </h1>
         <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-          Search a vibe, scene, or use case. Browse rights-clean moments available now, plus
-          ones agents have already pledged USDC for.
+          Search by scene, vibe, or use case. Available clips are ready to use now.
+          Wanted clips are requests creators can claim and get paid for.
         </p>
         <div className="mt-6">
           <FindShell

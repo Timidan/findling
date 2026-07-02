@@ -94,11 +94,11 @@ export function ClaimAction({
     return (
       <div className="rounded-2xl border border-sage/30 bg-sage/5 px-5 py-4">
         <p className="flex items-center gap-2 text-sm font-semibold text-sage">
-          <Broadcast weight="fill" className="size-4" /> Live. Agents can pay now
+          <Broadcast weight="fill" className="size-4" /> Live. Agents can use it now
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Your moment is published and the waiting agents have been notified. You keep 80%
-          of every sale; check your earnings in the Studio.
+          Your clip is published and agents following this request have been notified. You keep 80%
+          every time it is used. Check your earnings in the Studio.
         </p>
         <Link
           href="/studio/earnings"
@@ -120,8 +120,8 @@ export function ClaimAction({
             <SealCheck weight="fill" className="size-4" /> Clip published. Ready to go live
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Activate to notify the waiting agents. They pay through Findling&apos;s existing
-            flow and you keep 80%.
+            Go live to notify agents following this request. They pay when they use the clip
+            and you keep 80%.
           </p>
           <button
             type="button"
@@ -144,11 +144,11 @@ export function ClaimAction({
     return (
       <div className="rounded-2xl border border-sage/30 bg-sage/5 px-5 py-4">
         <p className="flex items-center gap-2 text-sm font-semibold text-sage">
-          <SealCheck weight="fill" className="size-4" /> Claimed. It&apos;s yours
+          <SealCheck weight="fill" className="size-4" /> Claimed. It is yours
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Upload your own clip of this moment and publish it. Then come back here to go live.
-          You keep 80%.
+          Upload your own version and publish it. Then come back here to go live.
+          You keep 80% when it is used.
         </p>
         <Link
           href={uploadHref}
@@ -198,7 +198,7 @@ export function ClaimAction({
           className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy && <CircleNotch weight="bold" className="size-4 animate-spin" />}
-          {busy ? "Verifying..." : "Verify & claim"}
+          {busy ? "Verifying..." : "Verify and claim request"}
         </button>
         {!connected && (
           <p className="text-xs text-muted-foreground">
@@ -222,7 +222,7 @@ export function ClaimAction({
         className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy && <CircleNotch weight="bold" className="size-4 animate-spin" />}
-        {busy ? "Claiming..." : "Claim this moment"}
+        {busy ? "Claiming..." : "Claim request"}
       </button>
       {!connected && (
         <p className="mt-2 text-xs text-muted-foreground">
@@ -237,12 +237,12 @@ export function ClaimAction({
 function humanError(reason?: string): string {
   switch (reason) {
     case "finder_cannot_claim_own_listing":
-      return "You listed this moment, so you can't claim it yourself.";
+      return "You created this request, so you can't claim it yourself.";
     case "actor_proof_failed":
     case "actor_proof_required":
       return "We couldn't verify you control this channel.";
     case "listing_not_claimable":
-      return "This moment has already been claimed.";
+      return "This request has already been claimed.";
     case "not_moment_owner":
       return "That clip isn't owned by this account.";
     case "moment_not_licensable":

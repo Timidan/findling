@@ -73,7 +73,7 @@ export function MomentCard({
           <span>{m.sourceType === "youtube" ? "YouTube import" : "Upload"}</span>
           {m.ownershipVerified && (
             <span className="inline-flex items-center gap-0.5 text-sage">
-              <SealCheck weight="fill" className="size-3" /> rights verified
+              <SealCheck weight="fill" className="size-3" /> verified
             </span>
           )}
         </p>
@@ -96,7 +96,7 @@ export function MomentCard({
           {showEarned && (
             <div className="text-right">
               <p className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
-                {m.licenses} {m.licenses === 1 ? "license" : "licenses"}
+                {m.licenses} {m.licenses === 1 ? "use" : "uses"}
               </p>
               {m.earnedMicroUsdc > 0 ? (
                 <span className="tabular inline-flex items-center gap-1 text-sm font-semibold text-foreground">
@@ -104,7 +104,7 @@ export function MomentCard({
                   <UsdcIcon size="0.8em" />
                 </span>
               ) : (
-                <span className="text-sm text-muted-foreground">No sales yet</span>
+                <span className="text-sm text-muted-foreground">No paid uses yet</span>
               )}
             </div>
           )}
@@ -143,7 +143,7 @@ export function ImportCta({ size = "lg" }: { size?: "lg" | "sm" }) {
         className={`inline-flex items-center justify-center gap-2 rounded-full bg-primary font-semibold text-primary-foreground transition-transform active:scale-[0.98] ${pad}`}
       >
         <Plus weight="bold" className="size-4" />
-        New moment
+        New clip
       </Link>
     </>
   );
@@ -156,10 +156,10 @@ export function StudioEmpty() {
         <Sparkle weight="duotone" className="size-6" />
       </span>
       <div>
-        <h3 className="font-display text-2xl tracking-tight">No moments yet</h3>
+        <h3 className="font-display text-2xl tracking-tight">No clips yet</h3>
         <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-          Import a clip from your YouTube channel or upload a video, mark the
-          licensable moment, set a USDC price, and publish it for agents to find.
+          Upload a clip you own to start earning. You can also import from your
+          YouTube channel, set a USDC price, and publish when ready.
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
@@ -175,7 +175,7 @@ export function StudioEmpty() {
           className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
         >
           <UploadSimple weight="bold" className="size-4" />
-          Upload a video
+          Upload clip
         </Link>
       </div>
     </div>

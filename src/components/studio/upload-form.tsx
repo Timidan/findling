@@ -95,7 +95,7 @@ export function UploadForm() {
       e.preventDefault();
       if (!file || durationMs == null) return setError("Choose a video first.");
       if (!title.trim()) return setError("Add a title.");
-      if (!rights) return setError("Confirm you have the rights to license this clip.");
+      if (!rights) return setError("Confirm you can let others use this clip.");
       setError(null);
       setPhase("uploading");
       try {
@@ -127,7 +127,7 @@ export function UploadForm() {
           }),
         });
         const compJson = await comp.json().catch(() => null);
-        if (!comp.ok) throw new Error(compJson?.error ?? "Could not finalize the moment.");
+        if (!comp.ok) throw new Error(compJson?.error ?? "Could not finish the clip.");
         setPhase("done");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -146,8 +146,8 @@ export function UploadForm() {
         <div>
           <h2 className="font-display text-2xl tracking-tight">Clip uploaded</h2>
           <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-            &ldquo;{title.trim()}&rdquo; is now a draft moment. Set its USDC price in Clips and
-            hit Publish so agents can discover it.
+            &quot;{title.trim()}&quot; is now a draft clip. Set its USDC price in Clips and
+            publish it so people and agents can use it.
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2">
@@ -251,7 +251,7 @@ export function UploadForm() {
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
           maxLength={500}
-          placeholder="What's the licensable moment? Helps agents find it."
+          placeholder="What happens in the clip? This helps agents find it."
           className="w-full resize-none rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus-visible:border-sage"
         />
       </div>
@@ -264,7 +264,7 @@ export function UploadForm() {
           className="mt-0.5 size-4 shrink-0 accent-sage"
         />
         <span className="text-sm text-muted-foreground">
-          I own or control the rights to this clip and may license it to others.
+          I own or control this clip and can let others use it.
         </span>
       </label>
 

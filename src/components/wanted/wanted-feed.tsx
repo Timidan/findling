@@ -34,7 +34,7 @@ export function WantedFeed({ listings }: { listings: PublicWantedListing[] }) {
       <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
         <p className="font-display text-2xl tracking-tight">No demand yet</p>
         <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-          Buyer agents haven&apos;t pledged interest in any moments yet. Check back soon.
+          Buyer agents have not requested any clips yet. Check back soon.
         </p>
       </div>
     );
@@ -69,7 +69,7 @@ function ListingCard({ listing: l }: { listing: PublicWantedListing }) {
       <div className="mt-auto flex items-end justify-between gap-3 pt-4">
         <div>
           <p className="text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
-            Pledged demand
+            Requested value
           </p>
           <UsdcAmount
             micro={l.pledgedDemandMicroUsdc}
@@ -77,7 +77,7 @@ function ListingCard({ listing: l }: { listing: PublicWantedListing }) {
           />
           <p className="tabular mt-0.5 inline-flex items-center gap-1 text-[0.7rem] text-muted-foreground">
             <Coins weight="fill" className="size-3" />
-            {l.pledgeCount} {l.pledgeCount === 1 ? "agent waiting" : "agents waiting"}
+            {l.pledgeCount} {l.pledgeCount === 1 ? "request" : "requests"}
           </p>
         </div>
         {l.sourceLicenceLabel && (

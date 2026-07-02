@@ -17,8 +17,8 @@ import { ClaimAction } from "@/components/claim/claim-action";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Claim your moment · Findling",
-  description: "Agents have pledged USDC for your clip. Claim it and get paid.",
+  title: "Claim a clip request · Findling",
+  description: "If this clip is yours, claim the request, upload your version, and get paid when it is used.",
 };
 
 export default async function ClaimPage({
@@ -38,7 +38,7 @@ export default async function ClaimPage({
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background text-foreground">
-      <SiteHeader tag="Claim a moment" initialUser={initialUser} />
+      <SiteHeader tag="Claim request" initialUser={initialUser} />
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-5 py-12">
         <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
           <ShareNetwork weight="bold" className="size-3.5 text-sage" />
@@ -46,15 +46,19 @@ export default async function ClaimPage({
         </span>
 
         <h1 className="mt-4 font-display text-3xl leading-[1.06] tracking-tight text-balance sm:text-4xl">
-          Agents want this moment from you.
+          People want this clip from you.
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">{view.title}</p>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          If this clip is yours, claim the request, upload your version, and get
+          paid when it is used.
+        </p>
 
         {/* the waiting money — the reason to claim */}
         <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-sage/30 bg-sage/5 px-5 py-4">
           <div>
             <p className="text-[0.65rem] uppercase tracking-[0.16em] text-muted-foreground">
-              Pledged &amp; waiting for you
+              Money waiting after upload
             </p>
             <UsdcAmount
               micro={view.pledgedDemandMicroUsdc}
@@ -69,8 +73,8 @@ export default async function ClaimPage({
         </div>
 
         <p className="mt-3 text-xs text-muted-foreground">
-          This is <span className="font-medium text-foreground">funded interest</span>, not
-          held money. Agents pay only after you claim and upload your own clip. You keep 80%.
+          This shows demand, not money held by Findling. Agents pay only after
+          you claim and publish your own clip. You keep 80%.
         </p>
 
         <div className="mt-6">
@@ -103,14 +107,14 @@ export default async function ClaimPage({
           <Step
             n={3}
             icon={<UploadSimple weight="duotone" className="size-5 text-sage" />}
-            title="Upload your clip & publish"
-            body="Add the moment as your own rights-clean clip and publish it."
+            title="Upload your clip and publish"
+            body="Add your own version and publish it so people and agents can use it."
           />
           <Step
             n={4}
             icon={<HandCoins weight="duotone" className="size-5 text-sage" />}
             title="Get paid"
-            body="The waiting agents pay through Findling's existing flow. You receive 80% in USDC and can withdraw on-chain."
+            body="Agents pay through Findling after the clip is live. You receive 80% in USDC and can withdraw on-chain."
           />
         </ol>
 

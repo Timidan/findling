@@ -23,16 +23,16 @@ export function RecentLicenses({ licenses }: { licenses: RecentLicense[] }) {
   return (
     <section className="mt-10">
       <h2 className="text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">
-        Recent licenses
+        Recent clip uses
       </h2>
       {licenses.length === 0 ? (
         <div className="mt-3 flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-card/50 px-6 py-12 text-center">
           <span className="grid size-10 place-items-center rounded-full bg-secondary text-sage">
             <Receipt weight="duotone" aria-hidden className="size-5" />
           </span>
-          <p className="text-sm font-medium">No licenses yet</p>
+          <p className="text-sm font-medium">No paid uses yet</p>
           <p className="max-w-xs text-xs text-muted-foreground">
-            When an agent licenses one of your moments, the sale and your USDC split land here.
+            When an agent uses one of your clips, the sale and your USDC split land here.
           </p>
         </div>
       ) : (
@@ -55,7 +55,7 @@ export function RecentLicenses({ licenses }: { licenses: RecentLicense[] }) {
                     )}
                   </p>
                   <p className="tabular mt-0.5 truncate text-xs text-muted-foreground">
-                    {l.viaAgent ? "licensed by an agent" : "licensed"} · {ROLE_LABEL[l.role]} ·{" "}
+                    {l.viaAgent ? "paid by an agent" : "paid use"} · {ROLE_LABEL[l.role]} ·{" "}
                     {formatDateTime(l.at)}
                     {l.receiptSlug ? " · receipt" : ""}
                   </p>

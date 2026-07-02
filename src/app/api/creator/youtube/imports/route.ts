@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
   }
   if (endMs - startMs > MAX_MOMENT_MS) {
     return NextResponse.json(
-      { error: "A moment can be at most 60 seconds." },
+      { error: "A clip can be at most 60 seconds." },
       { status: 400 },
     );
   }
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
   const ownerChannelId = await getVideoChannelId(accessToken, videoId);
   if (ownerChannelId !== user.youtubeChannelId) {
     return NextResponse.json(
-      { error: "You can only import moments from your own channel." },
+      { error: "You can only import clips from your own channel." },
       { status: 403 },
     );
   }

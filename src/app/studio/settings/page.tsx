@@ -45,13 +45,16 @@ export default async function SettingsPage() {
         <p className="mt-1.5 text-sm text-muted-foreground">
           {identity.email ?? "Your creator account"}
         </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Connect accounts, choose your payout wallet, and manage how Findling identifies you.
+        </p>
       </div>
 
       <div className="mt-8 space-y-3">
         <Row
           icon={<Wallet weight="duotone" className="size-5" />}
           title="Payout wallet"
-          desc="Where withdrawn USDC settles on Arc."
+          desc="This wallet receives USDC when you withdraw."
         >
           <PayoutWalletControl
             initial={identity.payoutWalletAddress}
@@ -62,7 +65,7 @@ export default async function SettingsPage() {
         <Row
           icon={<YoutubeLogo weight="fill" className="size-5 text-sage" />}
           title="YouTube channel"
-          desc="Import clips and verify ownership of your moments."
+          desc="Import clips and verify ownership of your clips."
         >
           {ytConnected ? (
             <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium">
@@ -83,17 +86,17 @@ export default async function SettingsPage() {
         <Row
           icon={<Tag weight="duotone" className="size-5" />}
           title="Default clip price"
-          desc="Set per-moment when you publish. Editable defaults are coming."
+          desc="Choose per clip when you publish. Editable defaults are coming."
         >
           <span className="rounded-full bg-secondary px-3 py-1.5 text-xs text-muted-foreground">
-            Per moment
+            Per clip
           </span>
         </Row>
       </div>
 
       <p className="mt-8 text-xs text-muted-foreground">
         Profile editing and notification preferences are coming next. For now,
-        connect a channel and set prices per moment in{" "}
+        connect a channel and set prices per clip in{" "}
         <Link
           href="/studio/clips"
           className="font-medium text-foreground underline-offset-4 hover:underline"

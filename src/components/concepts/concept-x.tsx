@@ -103,22 +103,22 @@ const BEATS: BeatContent[] = [
   {
     step: "01",
     kicker: "clip the cut",
-    title: "A moment is just a cut.",
-    body: "Findling marks the in and out around the trick, renders the 8-second clip, and hosts it as a licensable moment.",
+    title: "A clip starts as a cut.",
+    body: "Findling marks the in and out around the trick, renders the 8-second clip, and hosts it so people and agents can use it.",
     Icon: Scissors,
   },
   {
     step: "02",
     kicker: "curate",
     title: "Someone makes it findable.",
-    body: "A finder tags the trick into useful context. When their pick gets licensed, their 12% finder cut is already encoded.",
+    body: "A finder tags the trick into useful context. When their pick gets used, their 12% finder cut is already encoded.",
     Icon: Sparkle,
   },
   {
     step: "03",
     kicker: "discover",
     title: "A consumer's agent finds it.",
-    body: "No browsing. The agent searches Findling over MCP in plain language and selects the moment that matches intent and budget.",
+    body: "No browsing. The agent searches Findling over MCP in plain language and selects the clip that matches intent and budget.",
     Icon: MagicWand,
   },
   {
@@ -617,7 +617,7 @@ function Hero() {
           </span>
           <span className="block overflow-hidden pb-2">
             <span className="hero-line block will-change-transform">
-              <em className="italic font-normal">moments</em> worth paying for.
+              <em className="italic font-normal">clips</em> worth paying for.
             </span>
           </span>
         </h1>
@@ -641,7 +641,7 @@ function Hero() {
         </div>
       </div>
       <div className="hero-cue mt-14 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-white/65">
-        <CaretDown weight="bold" className="size-3.5 text-sage" /> follow one moment
+        <CaretDown weight="bold" className="size-3.5 text-sage" /> follow one clip
       </div>
     </section>
   );
@@ -913,13 +913,13 @@ function CutTimeline() {
               </span>
             </div>
             <span className="absolute left-1 top-1 rounded bg-sage/90 px-1 py-px font-mono text-[0.42rem] font-bold uppercase leading-none tracking-wide text-black">
-              moment
+              clip
             </span>
           </div>
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate font-display text-sm text-white sm:text-base">Snowboard backside 360</p>
             <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[0.6rem] tabular-nums text-white/45">
-              <span className="uppercase tracking-widest">hosted moment</span>
+              <span className="uppercase tracking-widest">hosted clip</span>
               <span className="h-2.5 w-px bg-white/20" />
               <span className="text-sage">{SEL_DURATION_S.toFixed(1)}s</span>
               <span className="h-2.5 w-px bg-white/20" />
@@ -969,7 +969,7 @@ function CurationPanel() {
       </div>
       <div className="curate-reward mt-4 rounded-2xl border border-white/12 bg-zinc-950/70 p-4 sm:p-5">
         <div className="flex items-center justify-between gap-5">
-          <p className="text-sm text-white/60">finder earns when this moment sells</p>
+          <p className="text-sm text-white/60">finder earns when this clip is used</p>
           <p className="tabular font-[family-name:var(--font-cx)] text-3xl font-light text-white sm:text-4xl">12%</p>
         </div>
       </div>
@@ -1142,7 +1142,7 @@ function Proof({ stats }: { stats: Stats }) {
           Real payments. Real splits.
         </h2>
         <div className="mt-10 grid gap-8 sm:grid-cols-3">
-          <Stat label="moments licensed by agents" value={String(stats.settledCount)} />
+          <Stat label="clips used by agents" value={String(stats.settledCount)} />
           <Stat label="USDC settled on Arc" value={(stats.grossMicroUsdc / 1e6).toFixed(2)} usdc />
           <Stat
             label="paid to creators + finders"
@@ -1187,7 +1187,7 @@ function FooterCTA() {
             <div>
               <FindlingLogo size="1.6rem" wordClassName="text-2xl text-white" />
               <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/45">
-                A video-first marketplace where agents discover moments and pay creators in USDC.
+                A video-first marketplace where agents discover clips and pay creators in USDC.
               </p>
               <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/55">
                 <Link href="/studio" className="transition-colors hover:text-white">Studio</Link>

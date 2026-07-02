@@ -43,7 +43,7 @@ async function getWallet(): Promise<{
   account: Address;
 }> {
   const eth = injected();
-  if (!eth) throw new Error("No browser wallet found. Install one to license.");
+  if (!eth) throw new Error("No browser wallet found. Install one to use this clip.");
   const accounts = (await eth.request({
     method: "eth_requestAccounts",
   })) as string[];
@@ -61,7 +61,7 @@ function msg(e: unknown): string {
   const raw = e instanceof Error ? e.message : String(e);
   if (/user rejected|denied|rejected the request/i.test(raw)) return "You cancelled the wallet request.";
   if (/insufficient|exceeds balance|over_remaining_cap|payment_not_settled/i.test(raw))
-    return "Your Gateway USDC balance looks too low. Use “Set up licensing” to fund it, then try again.";
+    return "Your Gateway USDC balance looks too low. Use Set up payments to fund it, then try again.";
   return raw.length > 160 ? raw.slice(0, 160) + "..." : raw;
 }
 
@@ -109,8 +109,8 @@ export function LicenseCheckout({
       if (!grantRes.ok) {
         setError(
           grantRes.status === 401
-            ? "Connect your wallet above first, then license."
-            : "Couldn't set up the purchase. Try again.",
+            ? "Connect your wallet above first, then use this clip."
+            : "Could not start this payment. Try again.",
         );
         return;
       }
@@ -136,16 +136,16 @@ export function LicenseCheckout({
     return (
       <div className="rounded-2xl border border-sage/30 bg-sage/5 p-5">
         <p className="flex items-center gap-2 text-sm font-semibold text-sage">
-          <SealCheck weight="fill" className="size-4" /> Licensed
+          <SealCheck weight="fill" className="size-4" /> Unlocked
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          You licensed “{moment.title}”. Your full-quality file is ready (link valid ~5 min).
+          You unlocked &quot;{moment.title}&quot;. Your full-quality file is ready.
         </p>
         <a
           href={result.unlockUrl}
           className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98]"
         >
-          <DownloadSimple weight="bold" className="size-4" /> Download licensed clip
+          <DownloadSimple weight="bold" className="size-4" /> Download clip
         </a>
         <dl className="mt-4 space-y-1.5 text-xs text-muted-foreground">
           {result.receiptCode && (
@@ -177,7 +177,7 @@ export function LicenseCheckout({
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="text-[0.65rem] uppercase tracking-[0.16em] text-muted-foreground">
-            License price
+            Use price
           </p>
           <UsdcAmount
             micro={moment.priceMicroUsdc}
@@ -191,7 +191,7 @@ export function LicenseCheckout({
       </div>
 
       <p className="mt-1 text-xs text-muted-foreground">
-        {moment.usageType.replace(/_/g, " ")} license · paid in USDC on Arc · 80% to the creator
+        Pay once to use this clip in your project. The creator gets paid, and your receipt shows what you unlocked.
       </p>
 
       <div className="mt-4">
@@ -205,7 +205,7 @@ export function LicenseCheckout({
         className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
       >
         {busy === "license" && <CircleNotch weight="bold" className="size-4 animate-spin" />}
-        {busy === "license" ? "Confirming in wallet..." : "License this moment"}
+        {busy === "license" ? "Confirming in wallet..." : "Use this clip"}
       </button>
 
       <button
@@ -219,15 +219,14 @@ export function LicenseCheckout({
         ) : (
           <Coins weight="bold" className="size-3.5 text-sage" />
         )}
-        {funded ? "Gateway funded. Add more" : "Set up licensing (fund Gateway, one-time)"}
+        {funded ? "Gateway funded. Add more USDC" : "Set up payments"}
       </button>
 
       {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 
       <p className="mt-4 text-[0.7rem] leading-relaxed text-muted-foreground">
-        First time? Tap <span className="font-medium text-foreground">Set up licensing</span> to
-        deposit USDC into Circle Gateway once. Then license any moment in a tap. Your wallet signs
-        each payment directly; Findling never holds your funds.
+        First time? Add USDC to Circle Gateway once. Your wallet signs each payment
+        directly. Findling never holds your funds.
       </p>
     </div>
   );

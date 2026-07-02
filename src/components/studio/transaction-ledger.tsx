@@ -31,7 +31,7 @@ export function TransactionLedgerView({
         </span>
         <p className="text-sm font-medium">No transactions yet</p>
         <p className="max-w-xs text-xs text-muted-foreground">
-          License credits and on-chain payouts will appear here, newest first,
+          Clip credits and on-chain payouts will appear here, newest first,
           against a running balance.
         </p>
         {payoutWalletAddress && (
@@ -80,7 +80,7 @@ function Row({ e }: { e: LedgerEntry }) {
           <span className="capitalize">
             {isCredit
               ? `${e.role === "both" ? "creator + finder" : e.role} ${
-                  e.viaAgent ? "· agent license" : "license"
+                  e.viaAgent ? "· paid by agent" : "paid use"
                 }`
               : "to Arc wallet"}
           </span>

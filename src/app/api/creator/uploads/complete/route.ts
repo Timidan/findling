@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   }
   if (attestationAccepted !== true) {
     return NextResponse.json(
-      { error: "You must confirm you have the rights to license this clip." },
+      { error: "Confirm you can let others use this clip." },
       { status: 400 },
     );
   }

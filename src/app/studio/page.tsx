@@ -56,7 +56,7 @@ export default async function StudioHome() {
 
   const { creator, moments, publishedCount, earnedMicroUsdc } = data;
   const displayName = studioHandle(creator);
-  const totalLicenses = moments.reduce((n, m) => n + m.licenses, 0);
+  const totalUses = moments.reduce((n, m) => n + m.licenses, 0);
   const withdrawable = earnings?.creator.withdrawableMicroUsdc ?? 0;
   const recent = moments.slice(0, 4);
 
@@ -70,10 +70,13 @@ export default async function StudioHome() {
           <h1 className="mt-2 break-words font-display text-3xl leading-[1.05] tracking-tight sm:text-4xl">
             {displayName}
           </h1>
+          <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
+            Upload clips, publish them, and earn when people or agents use them.
+          </p>
           <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-            <span>{moments.length} moments</span>
+            <span>{moments.length} {moments.length === 1 ? "clip" : "clips"}</span>
             <span className="size-1 rounded-full bg-border" />
-            <span>{publishedCount} live</span>
+            <span>{publishedCount} live {publishedCount === 1 ? "clip" : "clips"}</span>
             {creator.youtubeChannelTitle && (
               <>
                 <span className="size-1 rounded-full bg-border" />
@@ -92,8 +95,8 @@ export default async function StudioHome() {
 
       {/* metric strip — dividers, not boxes. Money only for the signed-in owner. */}
       <dl className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-4">
-        <Metric label="Moments" value={String(moments.length)} sub={`${publishedCount} live`} />
-        <Metric label="Licenses sold" value={String(totalLicenses)} sub="settled on Arc" />
+        <Metric label="Clips" value={String(moments.length)} sub={`${publishedCount} live`} />
+        <Metric label="Clip uses" value={String(totalUses)} sub="paid on Arc" />
         {earnings ? (
           <>
             <Metric label="Lifetime earned" micro={earnedMicroUsdc} />
@@ -114,7 +117,7 @@ export default async function StudioHome() {
       <section className="mt-10">
         <div className="mb-3 flex items-end justify-between gap-3">
           <h2 className="text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">
-            Recent moments
+            Recent clips
           </h2>
           {moments.length > recent.length && (
             <Link
@@ -170,8 +173,8 @@ function StudioSignedOut() {
       <div>
         <h3 className="font-display text-2xl tracking-tight">Open your studio</h3>
         <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-          Connect your wallet to manage your moments, set USDC prices, and track your
-          earnings. Use the Connect wallet button in the sidebar.
+          Connect your wallet to upload clips, set USDC prices, and track earnings.
+          Use the Connect wallet button in the sidebar.
         </p>
       </div>
     </div>

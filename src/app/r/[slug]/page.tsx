@@ -58,7 +58,7 @@ export default async function ReceiptPage({
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background text-foreground">
-      <SiteHeader tag="License receipt" initialUser={initialUser} />
+      <SiteHeader tag="Receipt" initialUser={initialUser} />
       <main className="mx-auto flex w-full max-w-xl flex-1 flex-col px-5 py-12">
       {/* settled seal */}
       <div className="mt-2 flex items-center gap-2.5">
@@ -66,7 +66,7 @@ export default async function ReceiptPage({
           <SealCheck weight="fill" className="size-5" />
         </span>
         <div>
-          <p className="text-sm font-semibold text-sage">Licensed &amp; paid in USDC</p>
+          <p className="text-sm font-semibold text-sage">Clip unlocked and paid in USDC</p>
           <p className="tabular text-xs text-muted-foreground">
             {NETWORK_LABEL[r.network] ?? r.network} ·{" "}
             {formatDateTime(r.settledAt)}
@@ -78,14 +78,18 @@ export default async function ReceiptPage({
         {r.momentTitle}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        {r.usageType.replace("_", " ")} license · {r.sourceType === "youtube" ? "YouTube-imported" : "uploaded"} moment
+        This is proof that a clip was unlocked and paid for.
+      </p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Paid once to use this clip for {r.usageType.replace("_", " ")}. Source:{" "}
+        {r.sourceType === "youtube" ? "YouTube import" : "upload"}
         {r.licenseSummary ? ` · ${r.licenseSummary}` : ""}
       </p>
 
       {/* the split */}
       <section className="mt-8">
         <h2 className="mb-2 text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">
-          Split. Settled instantly
+          Who got paid
         </h2>
         <div className="divide-y divide-border rounded-xl border border-border bg-card">
           {rows.map((row) => (
@@ -124,7 +128,7 @@ export default async function ReceiptPage({
         {r.attributionText && <DetailRow label="Attribution" value={r.attributionText} />}
         {r.ownershipModel && (
           <DetailRow
-            label="Rights"
+            label="Usage rights"
             value={r.ownershipModel === "channel_control" ? "YouTube channel control" : "Contributor attestation"}
           />
         )}
@@ -133,8 +137,8 @@ export default async function ReceiptPage({
       <div className="mt-8 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
         <Path weight="bold" className="size-4 shrink-0 text-sage" />
         <span>
-          Paid autonomously by an AI agent. Circle Gateway settles nanopayments in batches. The on-chain
-          transaction lands when the batch flushes.
+          Paid autonomously by an AI agent. Circle Gateway settles small payments
+          in batches. The on-chain transaction lands when the batch flushes.
         </span>
       </div>
 

@@ -23,11 +23,15 @@ export default async function ClipsPage() {
             Clips
           </p>
           <h1 className="mt-2 font-display text-3xl leading-[1.05] tracking-tight sm:text-4xl">
-            Your moments
+            Your clips
           </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            {moments.length} {moments.length === 1 ? "moment" : "moments"}
-            {data ? ` · ${data.publishedCount} live for agents` : ""}
+          <p className="mt-1.5 max-w-xl text-sm text-muted-foreground">
+            Manage clips you have added. Drafts are private. Published clips can be
+            found and used by others.
+          </p>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {moments.length} {moments.length === 1 ? "clip" : "clips"}
+            {data ? ` · ${data.publishedCount} live ${data.publishedCount === 1 ? "clip" : "clips"}` : ""}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -50,9 +54,9 @@ export default async function ClipsPage() {
               <span className="grid size-10 place-items-center rounded-full bg-secondary text-sage">
                 <Plus weight="bold" className="size-5" />
               </span>
-              <span className="text-sm font-medium">New moment</span>
+              <span className="text-sm font-medium">New clip</span>
               <span className="text-xs text-muted-foreground">
-                Upload a clip or import from YouTube
+                Upload a clip you own or import from YouTube
               </span>
             </Link>
           </div>

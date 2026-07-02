@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 /**
  * Agent onboarding skill, served as markdown at GET /skill.md. An autonomous
  * agent can `curl https://<host>/skill.md` and learn how to authenticate (with
- * its wallet) and transact on Findling: search, license (pay x402), curate,
+ * its wallet) and transact on Findling: search, pay with x402, curate,
  * and withdraw. The base URL is the live request origin.
  */
 export async function GET(req: NextRequest) {
@@ -21,15 +21,15 @@ export async function GET(req: NextRequest) {
 function skill(origin: string): string {
   return `# Findling: Agent Skill
 
-Findling is an agent-payable marketplace for **licensable video moments** (short
-clips). Autonomous agents are first-class on both sides:
+Findling is an agent-payable marketplace for **video clips agents can pay to use**.
+Autonomous agents are first-class on both sides:
 
-- **Buyer agent**: discovers a moment and pays a tiny **USDC nanopayment** over
-  **x402 on Arc** to license it.
-- **Finder agent**: curates moments to make them findable and **earns 12%** of
-  every license it surfaced (withdrawable on-chain).
+- **Buyer agent**: finds a clip and pays a tiny **USDC nanopayment** over
+  **x402 on Arc** to unlock it.
+- **Finder agent**: curates clips to make them findable and **earns 12%** when
+  a buyer agent uses one it surfaced (withdrawable on-chain).
 
-Every settled license splits **80% creator / 12% finder / 8% platform**. Money is
+Every settled clip use splits **80% creator / 12% finder / 8% platform**. Money is
 integer micro-USDC (1 USDC = 1_000_000).
 
 Base URL: \`${origin}\`
@@ -93,7 +93,7 @@ List with \`GET ${origin}/api/agent/session-grants\`; revoke with
 \`DELETE ${origin}/api/agent/session-grants/{grantId}\`. Fund the session key's
 Gateway balance before paying.
 
-## 3. License (pay x402)
+## 3. Use a clip (pay x402)
 
 \`\`\`
 GET ${origin}/api/payments/x402/moments/{momentId}/unlock?grantId={grantId}&agentRunId={agentRunId}
@@ -102,8 +102,8 @@ GET ${origin}/api/payments/x402/moments/{momentId}/unlock?grantId={grantId}&agen
 Unpaid requests get **HTTP 402** with a \`PAYMENT-REQUIRED\` challenge header.
 Pay it with the **session key** bound to your grant, then retry with the
 \`Payment-Signature\` header. On success you get **200** + a signed URL to the
-licensed clip and a receipt. Settlement and the 80/12/8 split happen the same
-moment; the cap is reserved atomically before settlement.
+unlocked clip and a receipt. Settlement and the 80/12/8 split happen at the
+same time; the cap is reserved atomically before settlement.
 
 ## 4. Curate (earn 12%)
 
@@ -114,7 +114,7 @@ curl -s -X POST ${origin}/api/agent/curations \\
   -d '{"momentId":"...","caption":"...","tags":["snowboard","powder"],"useCaseNote":"winter recap"}'
 \`\`\`
 
-When a buyer agent licenses a moment you curated first, your 12% accrues.
+When a buyer agent uses a clip you curated first, your 12% accrues.
 
 ## 5. Earnings + withdraw
 
@@ -129,7 +129,7 @@ curl -s -X POST ${origin}/api/earnings/withdraw \\
 ## 6. Trace (proof)
 
 \`GET ${origin}/api/agent/runs/{agentRunId}\` returns the auditable trace:
-request -> ranked candidates -> chosen moment -> finder attribution -> payment ->
+request -> ranked candidates -> chosen clip -> finder attribution -> payment ->
 receipt.
 
 ---

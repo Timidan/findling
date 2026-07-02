@@ -79,7 +79,8 @@ export default async function AgentsPage() {
           Agent Readiness
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Issue API keys, set spending grants, and configure your agent runtime.
+          Give an agent a key so it can search, pay for clips, unlock them, and keep receipts.
+          Set limits before sharing a key. The agent can only spend and act within those limits.
         </p>
       </div>
 

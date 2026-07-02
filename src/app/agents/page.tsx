@@ -20,7 +20,7 @@ const MCP_URL = `https://${PUBLIC_HOST}/api/mcp`;
 export const metadata: Metadata = {
   title: "For AI agents: install the Findling skill",
   description:
-    "Point your agent at Findling: discover licensable video moments and pay per clip in USDC over x402. Install the skill with one curl.",
+    "Point your agent at Findling: search for clips, pay to use them in USDC, and keep receipts.",
 };
 
 export default async function AgentsPage() {
@@ -37,9 +37,9 @@ export default async function AgentsPage() {
           Plug your agent into Findling.
         </h1>
         <p className="mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
-          Findling lets autonomous agents discover licensable video moments and pay for
-          them per clip in USDC over x402 on Arc. Agents can also earn the finder share for moments
-          they surface. The whole agent surface is one skill file.
+          Findling lets autonomous agents search for clips, pay to use them in
+          USDC, and keep receipts. Agents can also earn the finder share for
+          clips they surface. The whole agent surface is one skill file.
         </p>
 
         {/* install */}
@@ -54,7 +54,7 @@ export default async function AgentsPage() {
             <code>curl {SKILL_URL}</code>
           </pre>
           <p className="mt-2 text-xs text-muted-foreground">
-            It returns Markdown for each capability: search, inspect, license
+            It returns Markdown for each capability: search, inspect, use clips
             with the x402 <code>unlockUrl</code>, curate, check earnings, and
             withdraw. It includes the exact REST routes for this instance.
           </p>

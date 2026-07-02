@@ -18,7 +18,7 @@ export async function generateMetadata({
   const m = isUuid(id) ? await getMomentDetail(id) : null;
   return {
     title: m ? `${m.title} · Findling` : "Moment · Findling",
-    description: m?.description ?? "License this exact video moment with USDC.",
+    description: m?.description ?? "Use this video clip with a clear receipt.",
   };
 }
 
@@ -46,7 +46,7 @@ export default async function MomentPage({
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background text-foreground">
-      <SiteHeader tag="License" initialUser={initialUser} />
+      <SiteHeader tag="Use clip" initialUser={initialUser} />
       <main className="mx-auto grid w-full max-w-5xl flex-1 gap-8 px-5 py-10 lg:grid-cols-[1.4fr_1fr]">
         <div className="min-w-0">
           <div className="relative aspect-video overflow-hidden rounded-2xl border border-border bg-black">
@@ -75,6 +75,10 @@ export default async function MomentPage({
               {moment.description}
             </p>
           )}
+          <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
+            Preview the watermarked clip before paying. When you use it, you pay
+            for permission to use the full-quality clip and receive a receipt.
+          </p>
 
           <div className="mt-5 flex flex-wrap gap-2">
             <Badge

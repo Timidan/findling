@@ -31,13 +31,13 @@ export default async function UploadPage() {
         Clips
       </Link>
       <div className="mt-4">
-        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">New moment</p>
+        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">New clip</p>
         <h1 className="mt-2 font-display text-3xl leading-[1.05] tracking-tight sm:text-4xl">
           Upload a clip
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          A short video moment you own the rights to. We&apos;ll process it so you can mark the
-          licensable range and price it in USDC.
+          Add a clip you own or are allowed to publish. You choose the price
+          before it goes live.
         </p>
       </div>
       <div className="mt-8">

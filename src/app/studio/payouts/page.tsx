@@ -121,8 +121,8 @@ export default async function PayoutsPage() {
         </h2>
         {payable.length === 0 ? (
           <p className="rounded-xl border border-dashed border-border bg-card/50 px-5 py-6 text-sm text-muted-foreground">
-            Nothing to withdraw yet. Earnings accrue the moment an agent licenses
-            one of your moments, then you can pull them to your wallet here.
+            Nothing to withdraw yet. Earnings appear when people or agents use
+            your clips, then you can move them to your wallet here.
           </p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -160,7 +160,7 @@ export default async function PayoutsPage() {
         <h2 className="mb-3 flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">
           Transactions
           <span className="font-normal normal-case tracking-normal text-muted-foreground/70">
-            credits in · payouts on-chain
+            money in · payouts on-chain
           </span>
         </h2>
         <TransactionLedgerView
@@ -171,7 +171,7 @@ export default async function PayoutsPage() {
 
       <p className="mt-8 flex items-center gap-2 text-xs text-muted-foreground">
         <Receipt weight="duotone" className="size-4 text-sage" />
-        Credits settle instantly in the ledger; each payout settles on-chain to
+        Earnings settle instantly in the ledger. Each payout moves on-chain to
         your Arc wallet. Open any tx to verify it on the explorer.
       </p>
     </div>
