@@ -241,21 +241,7 @@ function useLandingMotion(
 
       const mm = gsap.matchMedia();
 
-      mm.add("(max-width: 1023px)", () => {
-        (q(".mobile-story-beat") as HTMLElement[]).forEach((beat) => {
-          gsap.from(beat, {
-            autoAlpha: 0,
-            y: 28,
-            duration: 0.8,
-            scrollTrigger: {
-              trigger: beat,
-              start: "top 80%",
-            },
-          });
-        });
-      });
-
-      mm.add("(min-width: 1024px)", () => {
+      mm.add("(min-width: 0px)", () => {
         if (!story || !pin) return undefined;
 
         const storyQ = gsap.utils.selector(story);
@@ -662,57 +648,28 @@ function Hero() {
 }
 
 function MomentStory({ priceMicroUsdc, split }: { priceMicroUsdc: number; split: Split }) {
-  return (
-    <>
-      <MobileMomentStory priceMicroUsdc={priceMicroUsdc} split={split} />
-      <PinnedMomentStory priceMicroUsdc={priceMicroUsdc} split={split} />
-    </>
-  );
-}
-
-function MobileMomentStory({ priceMicroUsdc, split }: { priceMicroUsdc: number; split: Split }) {
-  return (
-    <section className="mobile-moment-story px-5 py-16 md:px-12 lg:hidden">
-      <div className="mx-auto grid max-w-3xl gap-5">
-        <div className="mb-1 flex items-center gap-3">
-          <span className="h-px w-8 bg-sage/60" />
-          <span className="text-xs uppercase tracking-[0.2em] text-white/50">one trick, full flow</span>
-        </div>
-        {BEATS.map((beat, index) => (
-          <article
-            key={beat.step}
-            className="mobile-story-beat grid min-w-0 gap-5 rounded-[1.25rem] border border-white/10 bg-zinc-950/64 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md sm:p-5 md:p-6"
-          >
-            <StoryCopy beat={beat} reduced />
-            <div className="min-w-0 overflow-hidden rounded-[1rem] border border-white/10 bg-zinc-950/62 p-3 sm:p-4">
-              <StoryVisual index={index} priceMicroUsdc={priceMicroUsdc} split={split} />
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
+  return <PinnedMomentStory priceMicroUsdc={priceMicroUsdc} split={split} />;
 }
 
 function PinnedMomentStory({ priceMicroUsdc, split }: { priceMicroUsdc: number; split: Split }) {
   return (
-    <section className="moment-story relative hidden lg:block">
-      <div className="moment-pin relative flex min-h-[100dvh] items-center overflow-hidden px-5 py-14 md:px-12">
+    <section className="moment-story relative">
+      <div className="moment-pin relative flex min-h-[100dvh] items-center overflow-hidden px-4 py-5 sm:px-5 sm:py-8 md:px-12 md:py-12 lg:py-14">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/10" />
-        <div className="mx-auto grid w-full max-w-7xl items-center gap-10 lg:grid-cols-[0.86fr_1.14fr]">
+        <div className="mx-auto grid w-full max-w-7xl items-center gap-4 sm:gap-6 lg:grid-cols-[0.86fr_1.14fr] lg:gap-10">
           <div className="relative">
             <div className="mb-8 hidden items-center gap-3 md:flex">
               <span className="h-px w-10 bg-sage/60" />
               <span className="text-xs uppercase tracking-[0.22em] text-white/50">one trick, full flow</span>
             </div>
-            <div className="relative min-h-[23rem]">
+            <div className="relative min-h-[12.5rem] sm:min-h-[15rem] md:min-h-[18rem] lg:min-h-[23rem]">
               {BEATS.map((beat) => (
                 <StoryCopy key={beat.step} beat={beat} />
               ))}
             </div>
             <StoryProgress />
           </div>
-          <div className="relative min-h-[34rem] overflow-hidden rounded-[1.5rem] border border-white/10 bg-zinc-950/58 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md md:min-h-[38rem] md:p-6">
+          <div className="relative min-h-[19rem] overflow-hidden rounded-[1rem] border border-white/10 bg-zinc-950/58 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md sm:min-h-[23rem] sm:rounded-[1.25rem] sm:p-4 md:min-h-[34rem] md:rounded-[1.5rem] md:p-6 lg:min-h-[38rem]">
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.08),transparent_34%,rgba(255,255,255,0.05)_68%,transparent)] opacity-60" />
             <StoryPanel index={0}>
               <CutTimeline />
@@ -776,10 +733,10 @@ function StoryCopy({ beat, reduced }: { beat: BeatContent; reduced?: boolean }) 
           {beat.step} / {beat.kicker}
         </span>
       </div>
-      <h2 className="mt-6 max-w-xl font-[family-name:var(--font-cx)] text-3xl font-light leading-[1.05] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.7)] sm:text-4xl md:text-5xl lg:mt-7 lg:text-6xl">
+      <h2 className="mt-4 max-w-xl font-[family-name:var(--font-cx)] text-[1.72rem] font-light leading-[1.04] tracking-tight text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.7)] sm:text-4xl md:mt-6 md:text-5xl lg:mt-7 lg:text-6xl">
         {beat.title}
       </h2>
-      <p className="mt-4 max-w-md text-sm leading-relaxed text-white/85 [text-shadow:0_1px_12px_rgba(0,0,0,0.7)] sm:text-base md:text-lg lg:mt-5">
+      <p className="mt-3 max-w-md text-sm leading-relaxed text-white/85 [text-shadow:0_1px_12px_rgba(0,0,0,0.7)] sm:text-base md:mt-4 md:text-lg lg:mt-5">
         {beat.body}
       </p>
     </article>
@@ -788,7 +745,7 @@ function StoryCopy({ beat, reduced }: { beat: BeatContent; reduced?: boolean }) 
 
 function StoryProgress() {
   return (
-    <div className="mt-6 flex items-center gap-4 md:mt-0">
+    <div className="mt-6 hidden items-center gap-4 lg:flex">
       <div className="relative h-40 w-px overflow-hidden bg-white/12">
         <span className="story-progress-fill absolute inset-x-0 top-0 block h-full origin-top bg-sage" />
       </div>
@@ -808,7 +765,7 @@ function StoryProgress() {
 
 function StoryPanel({ children, index }: { children: React.ReactNode; index: number }) {
   return (
-    <div className="story-panel absolute inset-4 flex items-center justify-center md:inset-6" data-panel={index}>
+    <div className="story-panel absolute inset-3 flex items-center justify-center sm:inset-4 md:inset-6" data-panel={index}>
       {children}
     </div>
   );
@@ -828,7 +785,7 @@ function CutTimeline() {
             loop
             playsInline
             preload="metadata"
-            className="h-[9rem] w-full object-cover opacity-95 sm:h-[10.5rem] md:h-[12rem]"
+            className="h-[6.5rem] w-full object-cover opacity-95 sm:h-[10.5rem] md:h-[12rem]"
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
           <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-md border border-white/10 bg-black/60 px-2 py-1 font-mono text-[0.62rem] uppercase tracking-wider text-white/85 backdrop-blur">
@@ -840,7 +797,7 @@ function CutTimeline() {
         </div>
 
         {/* contact-sheet header */}
-        <div className="mt-4 flex items-center justify-between px-0.5">
+        <div className="mt-3 flex items-center justify-between px-0.5 sm:mt-4">
           <div className="flex items-center gap-2">
             <span className="grid size-7 place-items-center rounded-md border border-sage/30 bg-sage/10">
               <Scissors weight="bold" className="size-3.5 text-sage" />
@@ -862,7 +819,7 @@ function CutTimeline() {
         </div>
 
         {/* contact strip */}
-        <div className="relative mt-3 overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-950/70 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur">
+        <div className="relative mt-2 overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-950/70 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur sm:mt-3 sm:p-3">
           <div data-strip className="relative flex gap-1.5">
             {/* selection ring — geometry set from JS to hug the contiguous run */}
             <div
@@ -944,10 +901,10 @@ function CutTimeline() {
         {/* hosted-moment card — assembles beneath the strip */}
         <div
           data-card
-          className="mt-4 flex items-center gap-3 rounded-xl border border-sage/25 bg-zinc-950/80 p-3 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur"
+          className="mt-3 flex items-center gap-2 rounded-xl border border-sage/25 bg-zinc-950/80 p-2.5 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur sm:mt-4 sm:gap-3 sm:p-3"
         >
           <div
-            className="relative h-12 w-20 shrink-0 overflow-hidden rounded-md border border-white/10 bg-zinc-900"
+            className="relative h-10 w-16 shrink-0 overflow-hidden rounded-md border border-white/10 bg-zinc-900 sm:h-12 sm:w-20"
             style={{ backgroundImage: `url(${POSTER})`, backgroundSize: "cover", backgroundPosition: "center 42%" }}
           >
             <div className="absolute inset-0 grid place-items-center bg-black/25">
@@ -960,7 +917,7 @@ function CutTimeline() {
             </span>
           </div>
           <div className="min-w-0 flex-1 leading-tight">
-            <p className="font-display text-base text-white">Snowboard — backside 360</p>
+            <p className="truncate font-display text-sm text-white sm:text-base">Snowboard — backside 360</p>
             <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[0.6rem] tabular-nums text-white/45">
               <span className="uppercase tracking-widest">hosted moment</span>
               <span className="h-2.5 w-px bg-white/20" />
