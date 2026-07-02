@@ -42,4 +42,13 @@ describe("plain language product copy", () => {
       "See how an agent searched, chose, and paid for a clip.",
     );
   });
+
+  it("keeps the wallet area free of extra page labels", () => {
+    expect(source("src/components/site/site-header.tsx")).not.toContain(
+      "tracking-[0.18em]",
+    );
+    expect(source("src/components/site/site-header.tsx")).toContain(
+      "<ConnectWallet initialUser={initialUser} />",
+    );
+  });
 });

@@ -21,13 +21,12 @@ const NAV: { href: string; label: string }[] = [
 
 export function SiteHeader({
   active,
-  tag,
   className,
   initialUser,
 }: {
   /** href of the current section, to mark the active nav link */
   active?: string;
-  /** optional right-aligned context label (e.g. "License receipt") */
+  /** accepted for older callers; page labels are not rendered beside wallet controls */
   tag?: string;
   className?: string;
   /** server-seeded session user (from the dynamic page) so the wallet button
@@ -73,11 +72,6 @@ export function SiteHeader({
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
-          {tag && (
-            <span className="tabular hidden text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground sm:inline">
-              {tag}
-            </span>
-          )}
           <ConnectWallet initialUser={initialUser} />
           <ThemeToggle />
         </div>
