@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     typeof body?.username === "string" ? body.username.trim().toLowerCase() : "";
   if (!USERNAME_RE.test(username)) {
     return NextResponse.json(
-      { error: "invalid_username", hint: "3–20 characters: a–z, 0–9, underscore" },
+      { error: "invalid_username", hint: "Use 3 to 20 characters: a to z, 0 to 9, or underscore." },
       { status: 400 },
     );
   }

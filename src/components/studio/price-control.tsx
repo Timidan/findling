@@ -39,7 +39,7 @@ export function PriceControl({
     }
     const m = Math.round(v * 1_000_000);
     if (m < MIN_MICRO || m > MAX_MICRO) {
-      setError("Price must be $0.001–$100.");
+      setError("Price must be $0.001 to $100.");
       return;
     }
     setBusy(true);
@@ -62,7 +62,7 @@ export function PriceControl({
       setEditing(false);
       router.refresh();
     } catch {
-      setError("Something went wrong — try again.");
+      setError("Something went wrong. Try again.");
     } finally {
       setBusy(false);
     }

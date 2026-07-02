@@ -23,7 +23,7 @@ const getUnifiedFeedCached = unstable_cache(
 );
 
 export const metadata: Metadata = {
-  title: "Find — the exact video moment you can actually license · Findling",
+  title: "Find licensable video moments · Findling",
   description:
     "Search a vibe, scene, or use case. Rights-clean video moments available now, plus ones agents have already pledged USDC for.",
 };
@@ -73,7 +73,7 @@ export default async function FindPage({
           Find the exact video moment you can actually license.
         </h1>
         <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-          Search a vibe, scene, or use case — rights-clean moments available now, plus
+          Search a vibe, scene, or use case. Browse rights-clean moments available now, plus
           ones agents have already pledged USDC for.
         </p>
         <div className="mt-6">

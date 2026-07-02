@@ -72,7 +72,7 @@ export default async function ClaimStartPage({
 
         <p className="mt-3 text-xs text-muted-foreground">
           This is <span className="font-medium text-foreground">funded interest</span>, not
-          held money — agents pay only after you claim and upload your own clip. You keep 80%.
+          held money. Agents pay only after you claim and upload your own clip. You keep 80%.
         </p>
 
         <div className="mt-6">
@@ -96,7 +96,7 @@ export default async function ClaimStartPage({
             active
             icon={<Wallet weight="duotone" className="size-5 text-sage" />}
             title="Connect your wallet"
-            body="Sign in with your wallet — this is the address your USDC payout lands in."
+            body="Sign in with the wallet where you want your USDC payout."
           >
             <ConnectWallet initialUser={initialUser} />
           </Step>
@@ -104,13 +104,13 @@ export default async function ClaimStartPage({
             n={2}
             icon={<SealCheck weight="duotone" className="size-5 text-sage" />}
             title="Prove this channel is yours"
-            body="Paste a one-time Findling code into your PeerTube channel (or video). We read it back to confirm you control the account — no admin access needed."
+            body="Paste a one-time Findling code into your PeerTube channel or video. We read it back to confirm control. No admin access needed."
           />
           <Step
             n={3}
             icon={<UploadSimple weight="duotone" className="size-5 text-sage" />}
             title="Upload your clip & publish"
-            body="Add the moment as your own rights-clean clip and publish it — the same upload every Findling creator uses."
+            body="Add the moment as your own rights-clean clip and publish it."
           />
           <Step
             n={4}

@@ -76,7 +76,7 @@ export function createFindlingMcpServer(
     "search_moments",
     {
       description:
-        "Search Findling's catalog of licensable short video moments by natural-language intent. Returns ranked ELIGIBLE candidates (published, hosted, in-budget) plus an agentRunId that traces the decision. Discovery only — to license a moment, pay its unlockUrl with your own wallet.",
+        "Search Findling's catalog of licensable short video moments by natural-language intent. Returns ranked eligible candidates and an agentRunId that traces the decision. To license a moment, pay its unlockUrl with your own wallet.",
       inputSchema: {
         query: z
           .string()

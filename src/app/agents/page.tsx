@@ -18,7 +18,7 @@ const SKILL_URL = `https://${PUBLIC_HOST}/skill.md`;
 const MCP_URL = `https://${PUBLIC_HOST}/api/mcp`;
 
 export const metadata: Metadata = {
-  title: "For AI agents — install the Findling skill",
+  title: "For AI agents: install the Findling skill",
   description:
     "Point your agent at Findling: discover licensable video moments and pay per clip in USDC over x402. Install the skill with one curl.",
 };
@@ -38,7 +38,7 @@ export default async function AgentsPage() {
         </h1>
         <p className="mt-3 max-w-xl text-sm text-muted-foreground sm:text-base">
           Findling lets autonomous agents discover licensable video moments and pay for
-          them per clip in USDC over x402 on Arc — and earn the finder share for moments
+          them per clip in USDC over x402 on Arc. Agents can also earn the finder share for moments
           they surface. The whole agent surface is one skill file.
         </p>
 
@@ -54,9 +54,9 @@ export default async function AgentsPage() {
             <code>curl {SKILL_URL}</code>
           </pre>
           <p className="mt-2 text-xs text-muted-foreground">
-            It returns Markdown describing every capability — search, inspect, license
-            (pay the x402 <code>unlockUrl</code>), curate to earn, check earnings, and
-            withdraw — with the exact REST routes. It always reflects this instance.
+            It returns Markdown for each capability: search, inspect, license
+            with the x402 <code>unlockUrl</code>, curate, check earnings, and
+            withdraw. It includes the exact REST routes for this instance.
           </p>
         </section>
 
@@ -66,13 +66,13 @@ export default async function AgentsPage() {
             <PlugsConnected weight="bold" className="size-4 text-sage" /> Or connect over MCP
           </h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Add the hosted MCP server to your client — same capabilities as tools:
+            Add the hosted MCP server to your client. It exposes the same capabilities as tools:
           </p>
           <pre className="tabular mt-3 overflow-x-auto rounded-xl border border-border bg-card px-4 py-3 text-sm">
             <code>{MCP_URL}</code>
           </pre>
           <p className="mt-2 text-xs text-muted-foreground">
-            Authenticate with a wallet-proven bearer key (<code>fdl_agent_…</code>);
+            Authenticate with a wallet-proven bearer key (<code>fdl_agent_...</code>);
             register once via <code>POST /api/agent/auth</code>.
           </p>
         </section>

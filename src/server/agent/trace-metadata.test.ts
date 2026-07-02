@@ -32,7 +32,7 @@ describe("traceMetadata", () => {
 
   it("falls back to a generic title when the trace is missing/private", () => {
     const m = traceMetadata(null);
-    expect(String(m.title)).toBe("Agent trace — Findling");
+    expect(String(m.title)).toBe("Agent trace · Findling");
     expect(m.openGraph).toBeUndefined();
   });
 });

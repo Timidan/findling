@@ -82,7 +82,7 @@ export function ClaimAction({
       }
       return (await res.json().catch(() => ({}))) as Record<string, unknown>;
     } catch {
-      setError("Network error — try again.");
+      setError("Network error. Try again.");
       return null;
     } finally {
       setBusy(false);
@@ -94,7 +94,7 @@ export function ClaimAction({
     return (
       <div className="rounded-2xl border border-sage/30 bg-sage/5 px-5 py-4">
         <p className="flex items-center gap-2 text-sm font-semibold text-sage">
-          <Broadcast weight="fill" className="size-4" /> Live — agents can pay now
+          <Broadcast weight="fill" className="size-4" /> Live. Agents can pay now
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
           Your moment is published and the waiting agents have been notified. You keep 80%
@@ -117,7 +117,7 @@ export function ClaimAction({
       return (
         <div className="rounded-2xl border border-sage/30 bg-sage/5 px-5 py-4">
           <p className="flex items-center gap-2 text-sm font-semibold text-sage">
-            <SealCheck weight="fill" className="size-4" /> Clip published — ready to go live
+            <SealCheck weight="fill" className="size-4" /> Clip published. Ready to go live
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             Activate to notify the waiting agents. They pay through Findling&apos;s existing
@@ -134,7 +134,7 @@ export function ClaimAction({
             className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
           >
             {busy && <CircleNotch weight="bold" className="size-4 animate-spin" />}
-            {busy ? "Going live…" : "Go live"}
+            {busy ? "Going live..." : "Go live"}
           </button>
           {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
         </div>
@@ -144,11 +144,11 @@ export function ClaimAction({
     return (
       <div className="rounded-2xl border border-sage/30 bg-sage/5 px-5 py-4">
         <p className="flex items-center gap-2 text-sm font-semibold text-sage">
-          <SealCheck weight="fill" className="size-4" /> Claimed — it&apos;s yours
+          <SealCheck weight="fill" className="size-4" /> Claimed. It&apos;s yours
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Now upload your own clip of this moment and publish it — then come back here to go
-          live. You keep 80%.
+          Upload your own clip of this moment and publish it. Then come back here to go live.
+          You keep 80%.
         </p>
         <Link
           href={uploadHref}
@@ -198,7 +198,7 @@ export function ClaimAction({
           className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy && <CircleNotch weight="bold" className="size-4 animate-spin" />}
-          {busy ? "Verifying…" : "Verify & claim"}
+          {busy ? "Verifying..." : "Verify & claim"}
         </button>
         {!connected && (
           <p className="text-xs text-muted-foreground">
@@ -222,7 +222,7 @@ export function ClaimAction({
         className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy && <CircleNotch weight="bold" className="size-4 animate-spin" />}
-        {busy ? "Claiming…" : "Claim this moment"}
+        {busy ? "Claiming..." : "Claim this moment"}
       </button>
       {!connected && (
         <p className="mt-2 text-xs text-muted-foreground">
@@ -248,6 +248,6 @@ function humanError(reason?: string): string {
     case "moment_not_licensable":
       return "Publish your clip first, then go live.";
     default:
-      return "Something went wrong — try again.";
+      return "Something went wrong. Try again.";
   }
 }

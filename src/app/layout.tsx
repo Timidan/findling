@@ -27,7 +27,7 @@ const mono = Spline_Sans_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Findling — video moments, licensed in a tap",
+  title: "Findling: video moments, licensed in a tap",
   description:
     "An agent-payable marketplace for licensable video moments. Creators and finders get paid the instant an AI agent licenses one, in USDC on Arc.",
   icons: {

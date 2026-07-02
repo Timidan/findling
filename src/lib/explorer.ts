@@ -23,11 +23,11 @@ export function arcAddressUrl(address: string): string {
 /** Middle-truncate a hash/address for display: `0x1234…cdef`. */
 export function shortHex(value: string, lead = 6, tail = 4): string {
   return value.length > lead + tail + 1
-    ? `${value.slice(0, lead)}…${value.slice(-tail)}`
+    ? `${value.slice(0, lead)}...${value.slice(-tail)}`
     : value;
 }
 
 /** Display form for a (possibly missing) wallet address. */
 export function shortAddress(a: string | null | undefined): string {
-  return a ? shortHex(a) : "—";
+  return a ? shortHex(a) : "Not available";
 }

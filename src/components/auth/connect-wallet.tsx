@@ -10,7 +10,7 @@ export type Me = { id: string; address: string | null; displayName: string | nul
 const AUTH_ME_TIMEOUT_MS = 8_000;
 
 function shorten(addr: string): string {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
 function injected(): EIP1193Provider | null {
@@ -78,7 +78,7 @@ export function ConnectWallet({
     setError(null);
     const provider = injected();
     if (!provider) {
-      setError("No wallet found — install a browser wallet.");
+      setError("No wallet found. Install a browser wallet.");
       return;
     }
     setBusy(true);
@@ -149,7 +149,7 @@ export function ConnectWallet({
         type="button"
         onClick={signOut}
         disabled={busy}
-        title={`${me.address} — sign out`}
+        title={`${me.address}: sign out`}
         className={cn(
           "tabular inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:bg-secondary/60",
           className,
@@ -180,7 +180,7 @@ export function ConnectWallet({
         ) : (
           <Wallet weight="fill" className="size-3.5" />
         )}
-        {busy ? "Signing…" : "Connect wallet"}
+        {busy ? "Signing..." : "Connect wallet"}
       </button>
       <span id={errorId} role="alert" aria-live="assertive" className="sr-only">
         {error ?? ""}

@@ -31,8 +31,8 @@ const NETWORK_LABEL: Record<string, string> = {
 };
 
 function shortAddr(a: string | null): string {
-  if (!a) return "—";
-  return a.length > 14 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a;
+  if (!a) return "Not available";
+  return a.length > 14 ? `${a.slice(0, 6)}...${a.slice(-4)}` : a;
 }
 
 export default async function ReceiptPage({
@@ -85,7 +85,7 @@ export default async function ReceiptPage({
       {/* the split */}
       <section className="mt-8">
         <h2 className="mb-2 text-[0.7rem] uppercase tracking-[0.18em] text-muted-foreground">
-          Split — settled instantly
+          Split. Settled instantly
         </h2>
         <div className="divide-y divide-border rounded-xl border border-border bg-card">
           {rows.map((row) => (
@@ -133,7 +133,7 @@ export default async function ReceiptPage({
       <div className="mt-8 flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground">
         <Path weight="bold" className="size-4 shrink-0 text-sage" />
         <span>
-          Paid autonomously by an AI agent. Circle Gateway settles nanopayments in batches — the on-chain
+          Paid autonomously by an AI agent. Circle Gateway settles nanopayments in batches. The on-chain
           transaction lands when the batch flushes.
         </span>
       </div>

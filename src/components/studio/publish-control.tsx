@@ -46,12 +46,12 @@ export function PublishControl({
       });
       const d = (await res.json().catch(() => null)) as { error?: string } | null;
       if (!res.ok) {
-        setError(ERRORS[d?.error ?? ""] ?? "Couldn't publish — try again.");
+        setError(ERRORS[d?.error ?? ""] ?? "Couldn't publish. Try again.");
         return;
       }
       router.refresh();
     } catch {
-      setError("Something went wrong — try again.");
+      setError("Something went wrong. Try again.");
     } finally {
       setBusy(false);
     }

@@ -87,7 +87,7 @@ export default async function AnalyticsPage() {
         <Upcoming
           icon={<MagnifyingGlass weight="duotone" className="size-5" />}
           title="Search appearances"
-          body="How often agents surfaced each moment in semantic search — tracked once impression logging ships."
+          body="How often agents surfaced each moment in semantic search. Impression logging is coming next."
         />
         <Upcoming
           icon={<Eye weight="duotone" className="size-5" />}

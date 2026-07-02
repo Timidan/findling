@@ -113,7 +113,7 @@ export function UploadForm() {
           headers: { "Content-Type": file.type },
           body: file,
         });
-        if (!put.ok) throw new Error("Upload failed — check your connection and try again.");
+        if (!put.ok) throw new Error("Upload failed. Check your connection and try again.");
 
         setPhase("finalizing");
         const comp = await fetch("/api/creator/uploads/complete", {
@@ -199,7 +199,7 @@ export function UploadForm() {
             <p className="truncate text-sm font-medium">{file.name}</p>
             <p className="tabular mt-0.5 text-xs text-muted-foreground">
               {mb(file.size)}
-              {durationMs != null ? ` · ${secs(durationMs)}` : " · reading…"}
+              {durationMs != null ? ` · ${secs(durationMs)}` : " · reading..."}
             </p>
           </div>
           {!busy && (
@@ -235,7 +235,7 @@ export function UploadForm() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           maxLength={120}
-          placeholder="e.g. Snowboard — backcountry spray"
+          placeholder="e.g. Snowboard backcountry spray"
           className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus-visible:border-sage"
         />
       </div>
@@ -283,7 +283,7 @@ export function UploadForm() {
         {busy ? (
           <>
             <CircleNotch weight="bold" className="size-4 animate-spin" />
-            {phase === "finalizing" ? "Finalizing…" : "Uploading…"}
+            {phase === "finalizing" ? "Finalizing..." : "Uploading..."}
           </>
         ) : (
           <>

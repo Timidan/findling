@@ -62,14 +62,14 @@ export function SetUsernamePrompt() {
       if (!res.ok) {
         setError(
           d.error === "username_taken"
-            ? "That username is taken — try another."
+            ? "That username is taken. Try another."
             : d.hint ?? "Invalid username.",
         );
         return;
       }
       window.location.reload();
     } catch {
-      setError("Something went wrong — try again.");
+      setError("Something went wrong. Try again.");
     } finally {
       setBusy(false);
     }
@@ -90,7 +90,7 @@ export function SetUsernamePrompt() {
           Choose a username
         </h2>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Pick a unique handle — it&apos;s how you show up on Findling.
+          Pick a unique handle. This is how you show up on Findling.
         </p>
         <form onSubmit={submit} className="mt-5">
           <label htmlFor="username-input" className="sr-only">
@@ -118,7 +118,7 @@ export function SetUsernamePrompt() {
             />
           </div>
           <p id="username-hint" className="mt-1.5 text-xs text-muted-foreground">
-            3–20 characters · a–z, 0–9, underscore
+            Use 3 to 20 characters: a to z, 0 to 9, or underscore.
           </p>
           {error && (
             <p id="username-error" role="alert" className="mt-2 text-xs text-destructive">
@@ -130,7 +130,7 @@ export function SetUsernamePrompt() {
             disabled={busy || value.length < 3}
             className="mt-4 w-full rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-60"
           >
-            {busy ? "Saving…" : "Set username"}
+            {busy ? "Saving..." : "Set username"}
           </button>
         </form>
       </div>

@@ -112,7 +112,7 @@ function ReadinessBadge({
         {ready ? (
           <p className="mt-0.5 text-xs text-muted-foreground">
             Your agent can authenticate and spend within grant caps. Fund the session
-            key&apos;s Gateway balance on Arc before paying — Findling does not hold those
+            key&apos;s Gateway balance on Arc before paying. Findling does not hold those
             funds.
           </p>
         ) : (
@@ -200,7 +200,7 @@ function KeysSection({
     <div className="rounded-2xl border border-border bg-card p-5">
       <SectionHeader
         title="API Keys"
-        desc="Issue a key for your agent to authenticate with Findling's REST and MCP APIs. The plaintext is shown once — store it securely."
+        desc="Issue a key for Findling's REST and MCP APIs. You see the key once, so store it securely."
       />
 
       <div className="flex gap-2">
@@ -238,7 +238,7 @@ function KeysSection({
           <div className="mb-2 flex items-center gap-2">
             <Warning weight="fill" className="size-4 shrink-0 text-amber-500" />
             <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-              Shown once — copy it now. You cannot retrieve it again.
+              Shown once. Copy it now. You cannot retrieve it again.
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
@@ -300,7 +300,7 @@ function KeysSection({
       )}
 
       {creds.length === 0 && !newKey && (
-        <p className="mt-4 text-sm text-muted-foreground">No keys yet — issue one above.</p>
+        <p className="mt-4 text-sm text-muted-foreground">No keys yet. Issue one above.</p>
       )}
     </div>
   );
@@ -400,7 +400,7 @@ function GrantsSection({
     <div className="rounded-2xl border border-border bg-card p-5">
       <SectionHeader
         title="Session Grants"
-        desc="A grant authorizes your agent to spend USDC from a funded wallet, bounded by caps you set. Fund the session key's Gateway balance on Arc before paying — Findling does not hold those funds."
+        desc="A grant lets your agent spend USDC from a funded wallet within your caps. Fund the session key's Gateway balance on Arc before paying. Findling does not hold funds."
       />
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -408,7 +408,7 @@ function GrantsSection({
           <label className={labelCls}>Session key address (funded EOA)*</label>
           <input
             type="text"
-            placeholder="0x…"
+            placeholder="0x..."
             value={form.sessionKeyAddress}
             onChange={(e) => setForm((f) => ({ ...f, sessionKeyAddress: e.target.value }))}
             className={inputCls}
@@ -451,7 +451,7 @@ function GrantsSection({
           />
         </div>
         <div>
-          <label className={labelCls}>Allowed usage types (optional — leave empty for all)</label>
+          <label className={labelCls}>Allowed usage types (optional). Leave empty to allow all.</label>
           <div className="flex flex-wrap gap-1.5 pt-1">
             {USAGE_TYPES.map((u) => (
               <button
@@ -506,7 +506,7 @@ function GrantsSection({
             >
               <div className="min-w-0 flex-1">
                 <p className="break-all font-mono text-xs">
-                  {g.sessionKeyAddress.slice(0, 8)}…{g.sessionKeyAddress.slice(-6)}
+                  {g.sessionKeyAddress.slice(0, 8)}...{g.sessionKeyAddress.slice(-6)}
                 </p>
                 <p className="mt-0.5 text-[0.7rem] text-muted-foreground">
                   {formatMicroUsdc(g.remainingCapMicroUsdc)} /{" "}
@@ -548,7 +548,7 @@ function GrantsSection({
       )}
 
       {grants.length === 0 && (
-        <p className="mt-4 text-sm text-muted-foreground">No grants yet — create one above.</p>
+        <p className="mt-4 text-sm text-muted-foreground">No grants yet. Create one above.</p>
       )}
     </div>
   );
@@ -604,7 +604,7 @@ function ConnectSection({ origin }: { origin: string }) {
       note: "Swap the placeholder for the key you issued above.",
     },
     claude: {
-      file: "Run in your terminal — then /mcp in Claude Code to verify",
+      file: "Run this in your terminal, then use /mcp in Claude Code.",
       snippet: `claude mcp add --transport http findling ${url} \\\n  --header "Authorization: ${KEY}"`,
       note: "Adds the hosted server to Claude Code over Streamable HTTP.",
     },
@@ -622,7 +622,7 @@ function ConnectSection({ origin }: { origin: string }) {
       note: 'VS Code uses the top-level "servers" key with type "http".',
     },
     other: {
-      file: "Any MCP client (classic Claude Desktop, Windsurf, Zed, …)",
+      file: "Any MCP client (classic Claude Desktop, Windsurf, Zed, ...)",
       snippet: JSON.stringify(
         {
           mcpServers: {
@@ -651,7 +651,7 @@ function ConnectSection({ origin }: { origin: string }) {
       <div className="mb-4 flex items-start justify-between gap-3">
         <SectionHeader
           title="Connect your agent"
-          desc="One key, every client. The MCP server is hosted by Findling — nothing to run locally. Add it to your AI client, then it can search, license, curate, and withdraw on your behalf."
+          desc="One key works in every client. Findling hosts the MCP server, so there is nothing to run locally. Add it to your AI client so it can search, license, curate, and withdraw."
         />
         <span className="mt-1 shrink-0 rounded-full bg-sage/15 px-2 py-0.5 text-[0.6rem] uppercase tracking-wider text-sage">
           hosted MCP
@@ -693,7 +693,7 @@ function ConnectSection({ origin }: { origin: string }) {
       </div>
 
       <p className="mt-4 text-xs text-muted-foreground">
-        6 tools —{" "}
+        6 tools:{" "}
         {MCP_TOOLS.map((t, i) => (
           <span key={t}>
             <code className="rounded bg-secondary px-1 py-0.5">{t}</code>

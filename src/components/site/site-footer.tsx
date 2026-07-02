@@ -14,7 +14,7 @@ export function SiteFooter({ className }: { className?: string }) {
         <div className="flex items-center gap-2.5">
           <FindlingMark size="1.1rem" className="text-sage" />
           <p className="text-muted-foreground">
-            <span className="font-medium text-foreground">Findling</span> — video
+            <span className="font-medium text-foreground">Findling</span>: video
             moments, licensed in a tap by the agents that find them.
           </p>
         </div>

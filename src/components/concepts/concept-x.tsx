@@ -917,14 +917,14 @@ function CutTimeline() {
             </span>
           </div>
           <div className="min-w-0 flex-1 leading-tight">
-            <p className="truncate font-display text-sm text-white sm:text-base">Snowboard — backside 360</p>
+            <p className="truncate font-display text-sm text-white sm:text-base">Snowboard backside 360</p>
             <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[0.6rem] tabular-nums text-white/45">
               <span className="uppercase tracking-widest">hosted moment</span>
               <span className="h-2.5 w-px bg-white/20" />
               <span className="text-sage">{SEL_DURATION_S.toFixed(1)}s</span>
               <span className="h-2.5 w-px bg-white/20" />
               <span>
-                {tc(FRAMES[SEL_START].srcFrame)} → {tc(FRAMES[SEL_END].srcFrame)}
+                {tc(FRAMES[SEL_START].srcFrame)} to {tc(FRAMES[SEL_END].srcFrame)}
               </span>
             </p>
           </div>

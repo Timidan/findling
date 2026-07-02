@@ -127,7 +127,7 @@ export async function requestWithdrawal(
         status: "submitted",
         gatewayWithdrawReference: res.providerReference ?? null,
         failureReason:
-          "unknown_outcome (provider ok but missing tx hash) — held for reconciliation",
+          "unknown_outcome (provider ok but missing tx hash). Held for reconciliation.",
         updatedAt: new Date(),
       })
       .where(eq(withdrawals.id, wd.id))

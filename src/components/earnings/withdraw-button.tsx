@@ -95,7 +95,7 @@ export function WithdrawButton({
         </span>
         {status.txHash ? (
           <span className="tabular break-all text-[0.7rem] text-muted-foreground">
-            tx {status.txHash.slice(0, 14)}…
+            tx {status.txHash.slice(0, 14)}...
           </span>
         ) : (
           <span className="text-[0.7rem] text-muted-foreground">

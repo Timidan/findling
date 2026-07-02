@@ -106,7 +106,7 @@ export async function getEarnings(
     console.warn(
       `[earnings] ledger drift for user ${userId}: creator accrued=${creatorAccrued} ` +
         `withdrawn=${creatorWithdrawn}; finder accrued=${finderAccrued} withdrawn=${finderWithdrawn} ` +
-        `(withdrawable clamped to 0 — investigate)`,
+        `(withdrawable clamped to 0. Investigate.)`,
     );
   }
 

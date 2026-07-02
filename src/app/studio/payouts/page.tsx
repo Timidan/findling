@@ -172,7 +172,7 @@ export default async function PayoutsPage() {
       <p className="mt-8 flex items-center gap-2 text-xs text-muted-foreground">
         <Receipt weight="duotone" className="size-4 text-sage" />
         Credits settle instantly in the ledger; each payout settles on-chain to
-        your Arc wallet — open any tx to verify it on the explorer.
+        your Arc wallet. Open any tx to verify it on the explorer.
       </p>
     </div>
   );

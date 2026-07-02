@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { CheckCircle, PencilSimple, X } from "@phosphor-icons/react";
 
 const ADDR_RE = /^0x[0-9a-fA-F]{40}$/;
-const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+const short = (a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`;
 
 /**
  * Set or change the on-chain payout wallet (where withdrawn USDC settles).
@@ -27,7 +27,7 @@ export function PayoutWalletControl({
   async function save(address: string) {
     setError(null);
     if (!ADDR_RE.test(address)) {
-      setError("Enter a valid 0x… address (40 hex characters).");
+      setError("Enter a valid 0x... address with 40 hex characters.");
       return;
     }
     setBusy(true);
@@ -42,13 +42,13 @@ export function PayoutWalletControl({
         setError(
           d?.error === "unauthenticated"
             ? "Sign in again to update your payout wallet."
-            : "That address looks off — double-check it.",
+            : "That address looks off. Check it and try again.",
         );
         return;
       }
       window.location.reload();
     } catch {
-      setError("Something went wrong — try again.");
+      setError("Something went wrong. Try again.");
     } finally {
       setBusy(false);
     }
@@ -104,7 +104,7 @@ export function PayoutWalletControl({
           autoFocus
           value={value}
           onChange={(e) => setValue(e.target.value.trim())}
-          placeholder="0x…"
+          placeholder="0x..."
           spellCheck={false}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "payout-error" : undefined}
@@ -139,7 +139,7 @@ export function PayoutWalletControl({
         disabled={busy}
         className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-60"
       >
-        {busy ? "Saving…" : "Save payout wallet"}
+        {busy ? "Saving..." : "Save payout wallet"}
       </button>
     </form>
   );

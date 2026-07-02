@@ -28,7 +28,7 @@ function unauthorized(): Response {
       error: {
         code: -32001,
         message:
-          "unauthorized — send `Authorization: Bearer <fdl_agent_...>` (issue a key at /studio/agents or POST /api/agent/auth).",
+          "Unauthorized. Send `Authorization: Bearer <fdl_agent_...>` after you issue a key at /studio/agents or POST /api/agent/auth.",
       },
     }),
     {

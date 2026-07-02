@@ -8,13 +8,13 @@ import type { AgentRunTrace } from "./trace";
  * never leak a buyer's chosen-moment title in a private run's <title>.
  */
 export function traceMetadata(t: AgentRunTrace | null): Metadata {
-  if (!t) return { title: "Agent trace — Findling" };
+  if (!t) return { title: "Agent trace · Findling" };
   const subject = t.chosenMomentTitle ?? "Agent trace";
   return {
-    title: `${subject} — how the agent decided`,
-    description: "An auditable trace of one autonomous license — request to receipt, paid in USDC on Arc.",
+    title: `${subject}: how the agent decided`,
+    description: "An auditable trace of one autonomous license, from request to receipt, paid in USDC on Arc.",
     openGraph: {
-      title: `${subject} — how an AI agent decided`,
+      title: `${subject}: how an AI agent decided`,
       description: "Watch an agent search, choose, and license a video moment on Findling.",
     },
   };

@@ -7,13 +7,13 @@ import type { ReceiptView } from "./receipt";
  * A missing receipt gets a generic fallback (the page itself 404s).
  */
 export function receiptMetadata(r: ReceiptView | null): Metadata {
-  if (!r) return { title: "Receipt — Findling" };
+  if (!r) return { title: "Receipt · Findling" };
   const usage = r.usageType.replace(/_/g, " ");
   return {
-    title: `${r.momentTitle} — license receipt`,
+    title: `${r.momentTitle}: license receipt`,
     description: `${usage} license, settled in USDC on Arc.`,
     openGraph: {
-      title: `${r.momentTitle} — licensed & paid in USDC`,
+      title: `${r.momentTitle}: licensed and paid in USDC`,
       description: "A public, shareable proof that an AI agent licensed this video moment on Findling.",
     },
   };

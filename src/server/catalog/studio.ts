@@ -52,7 +52,7 @@ export function studioHandle(u: {
 }): string {
   if (u.username) return u.username;
   if (u.displayName) return u.displayName;
-  if (u.walletAddress) return `${u.walletAddress.slice(0, 6)}…${u.walletAddress.slice(-4)}`;
+  if (u.walletAddress) return `${u.walletAddress.slice(0, 6)}...${u.walletAddress.slice(-4)}`;
   return u.email?.split("@")[0] ?? "Creator";
 }
 

@@ -43,7 +43,7 @@ async function getWallet(): Promise<{
   account: Address;
 }> {
   const eth = injected();
-  if (!eth) throw new Error("No browser wallet found — install one to license.");
+  if (!eth) throw new Error("No browser wallet found. Install one to license.");
   const accounts = (await eth.request({
     method: "eth_requestAccounts",
   })) as string[];
@@ -62,7 +62,7 @@ function msg(e: unknown): string {
   if (/user rejected|denied|rejected the request/i.test(raw)) return "You cancelled the wallet request.";
   if (/insufficient|exceeds balance|over_remaining_cap|payment_not_settled/i.test(raw))
     return "Your Gateway USDC balance looks too low. Use “Set up licensing” to fund it, then try again.";
-  return raw.length > 160 ? raw.slice(0, 160) + "…" : raw;
+  return raw.length > 160 ? raw.slice(0, 160) + "..." : raw;
 }
 
 export function LicenseCheckout({
@@ -205,7 +205,7 @@ export function LicenseCheckout({
         className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
       >
         {busy === "license" && <CircleNotch weight="bold" className="size-4 animate-spin" />}
-        {busy === "license" ? "Confirming in wallet…" : "License this moment"}
+        {busy === "license" ? "Confirming in wallet..." : "License this moment"}
       </button>
 
       <button
@@ -219,14 +219,14 @@ export function LicenseCheckout({
         ) : (
           <Coins weight="bold" className="size-3.5 text-sage" />
         )}
-        {funded ? "Gateway funded ✓ — add more" : "Set up licensing (fund Gateway, one-time)"}
+        {funded ? "Gateway funded. Add more" : "Set up licensing (fund Gateway, one-time)"}
       </button>
 
       {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 
       <p className="mt-4 text-[0.7rem] leading-relaxed text-muted-foreground">
         First time? Tap <span className="font-medium text-foreground">Set up licensing</span> to
-        deposit USDC into Circle Gateway once — then license any moment in a tap. Your wallet signs
+        deposit USDC into Circle Gateway once. Then license any moment in a tap. Your wallet signs
         each payment directly; Findling never holds your funds.
       </p>
     </div>

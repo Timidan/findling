@@ -64,7 +64,7 @@ export default async function TracePage({
       <main className="mx-auto max-w-2xl px-5 py-12">
         <h1 className="mt-2 font-display text-3xl tracking-tight">How the agent decided</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          A full, auditable trace of one autonomous license — request to receipt.
+          A full trace of one autonomous license, from request to receipt.
         </p>
 
         <ol className="relative mt-10 space-y-px">
@@ -117,7 +117,7 @@ export default async function TracePage({
 
           <Step icon={<Path weight="duotone" className="size-4" />} label="Chose & attributed">
             <p className="text-sm">
-              <span className="font-medium">{t.chosenMomentTitle ?? "—"}</span>
+              <span className="font-medium">{t.chosenMomentTitle ?? "No moment selected"}</span>
             </p>
             {t.chosenFinderHandle && (
               <p className="mt-1 text-xs text-muted-foreground">
@@ -137,7 +137,7 @@ export default async function TracePage({
                 {settled ? "settled" : t.paymentStatus.replace(/_/g, " ")}
               </span>
               {t.paymentReference && (
-                <span className="tabular text-xs text-muted-foreground">· ref {t.paymentReference.slice(0, 12)}…</span>
+                <span className="tabular text-xs text-muted-foreground">· ref {t.paymentReference.slice(0, 12)}...</span>
               )}
             </div>
           </Step>

@@ -38,7 +38,7 @@ export function resolveAuthDomain(hostHeader: string | null): string {
   // until a canonical NEXT_PUBLIC_APP_URL is configured. Host fallback is dev-only.
   if (process.env.NODE_ENV === "production") {
     console.error(
-      "[siwe] NEXT_PUBLIC_APP_URL missing/malformed in production — failing SIWE closed",
+      "[siwe] NEXT_PUBLIC_APP_URL missing or malformed in production. Failing SIWE closed.",
     );
     return "";
   }
@@ -133,7 +133,7 @@ export async function upsertUserByWallet(
       .insert(users)
       .values({
         email: `${addr}@wallet.findling`,
-        displayName: `${addr.slice(0, 6)}…${addr.slice(-4)}`,
+        displayName: `${addr.slice(0, 6)}...${addr.slice(-4)}`,
         walletAddress: addr,
         roles: defaultRoles,
       })

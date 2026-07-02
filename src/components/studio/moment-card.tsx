@@ -40,7 +40,7 @@ export function MomentCard({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={m.posterUrl}
-            alt={`${m.title} — poster frame`}
+            alt={`${m.title} poster frame`}
             className="absolute inset-0 size-full object-cover"
           />
         ) : (
@@ -104,7 +104,7 @@ export function MomentCard({
                   <UsdcIcon size="0.8em" />
                 </span>
               ) : (
-                <span className="text-sm text-muted-foreground">—</span>
+                <span className="text-sm text-muted-foreground">No sales yet</span>
               )}
             </div>
           )}

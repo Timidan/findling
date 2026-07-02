@@ -83,7 +83,7 @@ export function FindShell({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search a vibe, scene, or use case…"
+          placeholder="Search a vibe, scene, or use case..."
           aria-label="Search moments"
           className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />

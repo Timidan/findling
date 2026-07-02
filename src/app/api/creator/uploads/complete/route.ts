@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
   }
   if (!info) {
     return NextResponse.json(
-      { error: "Upload not found — finish uploading the file first." },
+      { error: "Upload not found. Finish uploading the file first." },
       { status: 400 },
     );
   }
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
     if (msg.includes("too long")) {
       return rejectAndCleanup("Clip is too long (max 60s).", 400);
     }
-    return rejectAndCleanup("Could not read the clip — is it a valid video?", 400);
+    return rejectAndCleanup("Could not read the clip. Is it a valid video?", 400);
   }
 
   // A direct upload is already the final clip: create the source asset AND a draft
@@ -188,6 +188,6 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     // DB write failed after we accepted the object — clean it up, don't 500/orphan.
     console.error("[uploads/complete] completeUpload failed:", e);
-    return rejectAndCleanup("Could not finalize the upload — please try again.", 502);
+    return rejectAndCleanup("Could not finalize the upload. Please try again.", 502);
   }
 }

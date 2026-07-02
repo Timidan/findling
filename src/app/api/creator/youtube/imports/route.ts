@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     if (e instanceof ClipCapacityError) {
       return NextResponse.json(
-        { error: "Too many imports in progress — try again shortly." },
+        { error: "Too many imports are in progress. Try again shortly." },
         { status: 503, headers: { "Retry-After": "30" } },
       );
     }

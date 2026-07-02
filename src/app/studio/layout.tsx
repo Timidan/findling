@@ -7,7 +7,7 @@ import { getSessionUser } from "@/server/auth/current-user";
 export const dynamic = "force-dynamic"; // live creator context
 
 function shortAddr(a: string | null): string | null {
-  return a ? `${a.slice(0, 6)}…${a.slice(-4)}` : null;
+  return a ? `${a.slice(0, 6)}...${a.slice(-4)}` : null;
 }
 
 /**

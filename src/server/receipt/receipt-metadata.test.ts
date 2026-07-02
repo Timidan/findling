@@ -38,7 +38,7 @@ describe("receiptMetadata", () => {
 
   it("falls back to a generic title when the receipt is missing", () => {
     const m = receiptMetadata(null);
-    expect(String(m.title)).toBe("Receipt — Findling");
+    expect(String(m.title)).toBe("Receipt · Findling");
     expect(m.openGraph).toBeUndefined();
   });
 });

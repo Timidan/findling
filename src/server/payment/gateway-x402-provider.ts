@@ -120,7 +120,7 @@ export class GatewayX402PaymentProvider implements X402SellerPaymentAdapter {
     if (!usdc?.address) throw new Error("facilitator kind missing USDC asset address");
     if (usdc.decimals !== USDC_DECIMALS) {
       throw new Error(
-        `expected USDC ${USDC_DECIMALS} decimals, got ${usdc.decimals} — micro-USDC mapping invalid`,
+        `expected USDC ${USDC_DECIMALS} decimals, got ${usdc.decimals}. Micro-USDC mapping invalid.`,
       );
     }
     this.arcKind = {
