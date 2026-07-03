@@ -26,17 +26,35 @@ const mono = Spline_Sans_Mono({
   display: "swap",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://findling.timidan.xyz";
+const TITLE = "Findling: video clips people and agents can use";
+const DESCRIPTION =
+  "A marketplace where people and agents pay to use video clips. Creators and finders get paid in USDC on Arc.";
+
 export const metadata: Metadata = {
-  title: "Findling: video clips people and agents can use",
-  description:
-    "A marketplace where people and agents pay to use video clips. Creators and finders get paid in USDC on Arc.",
+  metadataBase: new URL(SITE_URL),
+  title: TITLE,
+  description: DESCRIPTION,
   icons: {
     icon: [{ url: "/brand/favicon-bracket.svg", type: "image/svg+xml" }],
+  },
+  // og:image + twitter:image are supplied automatically by app/opengraph-image.tsx.
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Findling",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
   },
 };
 
 /**
- * Pre-paint theme init — resolves the app-wide light/dark mode before the body
+ * Pre-paint theme init: resolves the app-wide light/dark mode before the body
  * paints so there's no flash. Default is `dark` (the cinematic brand default,
  * matching the landing); a stored preference wins. The palette itself lives in
  * globals.css as CSS variables on `:root` (cream) and `.dark` (cinema).
