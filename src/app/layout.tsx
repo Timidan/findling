@@ -29,7 +29,7 @@ const mono = Spline_Sans_Mono({
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://findling.timidan.xyz";
 const TITLE = "Findling: video clips people and agents can use";
 const DESCRIPTION =
-  "A marketplace where people and agents pay to use video clips. Creators and finders get paid in USDC on Arc.";
+  "Findling helps creators connect YouTube, publish video clips, and get paid when people or AI agents pay in USDC to use them.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

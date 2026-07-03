@@ -128,13 +128,18 @@ describe("plain language product copy", () => {
     const landing = source("src/components/concepts/concept-x.tsx");
     const layout = source("src/app/layout.tsx");
 
-    expect(layout).toContain("A marketplace where people and agents pay to use video clips.");
+    expect(layout).toContain(
+      "Findling helps creators connect YouTube, publish video clips, and get paid when people or AI agents pay in USDC to use them.",
+    );
+    expect(landing).toContain("Findling is a video clip marketplace.");
     expect(landing).toContain(
-      "Findling is a marketplace where creators publish video clips, finders make clips easier to discover, and people or AI agents pay in USDC to use the clips in their projects.",
+      "Creators connect YouTube to import videos they own, publish short clips, set prices, and get paid when people or AI agents pay in USDC to use those clips.",
     );
     expect(landing).toContain(
-      "Creators can connect YouTube, import their own videos, set prices, and get paid when a clip is used.",
+      "Finders curate clips so buyers and agents can discover the right moment faster.",
     );
-    expect(landing).toContain("Finders curate useful clips and earn a share when their picks are used.");
+    expect(landing).toContain("what this app does");
+    expect(landing).toContain("Privacy Policy");
+    expect(landing).toContain("Terms of Service");
   });
 });

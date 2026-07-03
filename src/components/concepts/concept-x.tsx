@@ -44,12 +44,13 @@ const MOTION_EASE = "power3.out";
 const VIDEO = "/demo/snowboard.mp4";
 const POSTER = "/demo/snowboard-poster.jpg";
 const AGENT_QUERY = "find an 8s snowboard trick under $0.10 for a winter recap";
+const HERO_TITLE = "Findling is a video clip marketplace.";
 const HOME_PURPOSE =
-  "Findling is a marketplace where creators publish video clips, finders make clips easier to discover, and people or AI agents pay in USDC to use the clips in their projects.";
+  "Creators connect YouTube to import videos they own, publish short clips, set prices, and get paid when people or AI agents pay in USDC to use those clips.";
 const CREATOR_PURPOSE =
-  "Creators can connect YouTube, import their own videos, set prices, and get paid when a clip is used.";
+  "Creators connect YouTube, import videos they own, set prices, and get paid when a clip is used.";
 const FINDER_PURPOSE =
-  "Finders curate useful clips and earn a share when their picks are used.";
+  "Finders curate clips so buyers and agents can discover the right moment faster.";
 const BUYER_PURPOSE =
   "Buyers and agents search for the right clip, pay once, and keep a receipt that shows what was unlocked.";
 
@@ -618,15 +619,18 @@ function Hero() {
     <section className="relative flex min-h-[100dvh] flex-col justify-end px-5 pb-20 md:px-12 md:pb-24">
       <div className="max-w-5xl">
         <div className="hero-chip mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-white/70 backdrop-blur-md">
-          a media marketplace for agents
+          what this app does
         </div>
-        <h1 className="font-[family-name:var(--font-cx)] text-[3.25rem] font-light leading-[0.96] tracking-tight text-balance sm:text-6xl md:text-[5rem] lg:text-[5.8rem]">
+        <h1
+          aria-label={HERO_TITLE}
+          className="font-[family-name:var(--font-cx)] text-[3.25rem] font-light leading-[0.96] tracking-tight text-balance sm:text-6xl md:text-[5rem] lg:text-[5.8rem]"
+        >
           <span className="block overflow-hidden pb-1">
-            <span className="hero-line block will-change-transform">Every video is full of</span>
+            <span className="hero-line block will-change-transform">Findling is a</span>
           </span>
           <span className="block overflow-hidden pb-2">
             <span className="hero-line block will-change-transform">
-              <em className="italic font-normal">clips</em> worth paying for.
+              video clip <em className="italic font-normal">marketplace.</em>
             </span>
           </span>
         </h1>
@@ -645,6 +649,14 @@ function Hero() {
             className="hero-action inline-flex min-h-12 items-center justify-center gap-2 px-2 py-3 text-sm font-medium text-white/70 underline-offset-4 transition-colors duration-300 hover:text-white hover:underline"
           >
             <Path weight="bold" className="size-4" /> Plug in your agent
+          </Link>
+        </div>
+        <div className="hero-action mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/58">
+          <Link href="/privacy" className="underline-offset-4 transition-colors hover:text-white hover:underline">
+            Privacy Policy
+          </Link>
+          <Link href="/terms" className="underline-offset-4 transition-colors hover:text-white hover:underline">
+            Terms of Service
           </Link>
         </div>
       </div>
@@ -678,7 +690,7 @@ function PurposeSection() {
     <section className="cx-reveal px-5 py-14 md:px-12 md:py-18">
       <div className="mx-auto grid max-w-6xl gap-7 border-y border-white/10 py-9 backdrop-blur-sm md:grid-cols-[0.82fr_1.18fr] md:items-start md:py-11">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-white/50">what findling does</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-white/50">what this app does</p>
           <h2 className="mt-3 max-w-xl font-[family-name:var(--font-cx)] text-3xl font-light leading-tight tracking-tight text-white md:text-5xl">
             Video clips people and agents can pay to use.
           </h2>
