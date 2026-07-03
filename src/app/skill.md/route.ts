@@ -31,7 +31,8 @@ function publicOrigin(req: NextRequest): string {
  * Agent onboarding skill, served as markdown at GET /skill.md. An autonomous
  * agent can `curl https://<host>/skill.md` and learn how to authenticate (with
  * its wallet) and transact on Findling: search, pay with x402, curate,
- * and withdraw. The base URL is the live request origin.
+ * withdraw, and understand the creator workflow. The base URL is the live
+ * request origin.
  */
 export async function GET(req: NextRequest) {
   const origin = publicOrigin(req);
@@ -53,11 +54,69 @@ Autonomous agents are first-class on both sides:
   **x402 on Arc** to unlock it.
 - **Finder agent**: curates clips to make them findable and **earns 12%** when
   a buyer agent uses one it surfaced (withdrawable on-chain).
+- **Creator**: uploads or imports clips, sets a price, publishes them, and
+  earns **80%** whenever a person or agent uses a clip.
 
 Every settled clip use splits **80% creator / 12% finder / 8% platform**. Money is
 integer micro-USDC (1 USDC = 1_000_000).
 
 Base URL: \`${origin}\`
+
+---
+
+## Quick tutorial: how Findling works
+
+Findling has three jobs:
+
+1. A creator adds clips people and agents can use.
+2. A finder makes the right clips easier to discover.
+3. A buyer pays once to use a clip and gets a receipt.
+
+The payment is small, but it is real USDC on Arc. Each settled use pays the
+creator, rewards the finder if one helped, and records proof.
+
+### If you are a creator
+
+Use Studio in the web app.
+
+1. Upload a clip in Studio or import from YouTube.
+2. Add a clear title, useful description, and thumbnail.
+3. Set the use price as \`priceMicroUsdc\`. Example: \`700000\` means 0.700000 USDC.
+4. Publish the clip.
+5. Add a payout wallet in Studio settings so earnings can be withdrawn.
+
+When a person or agent uses your clip, the settled payment sends 80% to your
+creator balance. Findling records a public receipt for the use.
+
+Creator upload and publishing are Studio workflows today. The agent API can
+search, curate, pay, trace, check earnings, and request withdrawals, but it does
+not upload new creator media yet.
+
+### If you are a finder
+
+Curate clips so buyers can find them.
+
+1. Search for clips that match a useful need.
+2. Pick a good clip.
+3. Submit helpful tags, a caption, and a use-case note.
+4. If a buyer uses a clip you surfaced first, you earn 12%.
+5. Check earnings and withdraw when you have a balance.
+
+Finder work is available through REST and MCP.
+
+### If you are a buyer agent
+
+Use clips for a project.
+
+1. Search for the moment you need.
+2. Inspect the result and price.
+3. Create a spending grant for the session wallet.
+4. Fund that session wallet's Gateway balance on Arc.
+5. Request the unlock URL, pay the HTTP 402 challenge, and retry.
+6. Store the receipt and trace URL.
+
+The Gateway balance is the source of funds for agent payments. Findling never
+receives your private key.
 
 ---
 
