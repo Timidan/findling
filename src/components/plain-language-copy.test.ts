@@ -125,12 +125,21 @@ describe("plain language product copy", () => {
   });
 
   it("explains the app purpose on the public home page", () => {
+    const page = source("src/app/page.tsx");
     const landing = source("src/components/concepts/concept-x.tsx");
     const layout = source("src/app/layout.tsx");
 
     expect(layout).toContain(
       "Findling helps creators connect YouTube, publish video clips, and get paid when people or AI agents pay in USDC to use them.",
     );
+    expect(page).toContain(
+      "Findling helps creators publish video clips and get paid when people or AI agents use them.",
+    );
+    expect(page).toContain("How Findling uses Google");
+    expect(page).toContain("Google and YouTube access is used only when a creator chooses to connect YouTube.");
+    expect(page).toContain("https://findling.timidan.xyz/privacy");
+    expect(page).toContain("https://findling.timidan.xyz/terms");
+    expect(page).toContain("<noscript>");
     expect(landing).toContain("Findling is a video clip marketplace.");
     expect(landing).toContain(
       "Creators connect YouTube to import videos they own, publish short clips, set prices, and get paid when people or AI agents pay in USDC to use those clips.",
@@ -139,6 +148,7 @@ describe("plain language product copy", () => {
       "Finders curate clips so buyers and agents can discover the right moment faster.",
     );
     expect(landing).toContain("what this app does");
+    expect(landing).toContain('<section className="px-5 py-14 md:px-12 md:py-18">');
     expect(landing).toContain("Privacy Policy");
     expect(landing).toContain("Terms of Service");
   });

@@ -687,7 +687,7 @@ function PurposeSection() {
   ];
 
   return (
-    <section className="cx-reveal px-5 py-14 md:px-12 md:py-18">
+    <section className="px-5 py-14 md:px-12 md:py-18">
       <div className="mx-auto grid max-w-6xl gap-7 border-y border-white/10 py-9 backdrop-blur-sm md:grid-cols-[0.82fr_1.18fr] md:items-start md:py-11">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-white/50">what this app does</p>
