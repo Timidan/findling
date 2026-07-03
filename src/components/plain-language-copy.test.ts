@@ -103,5 +103,9 @@ describe("plain language product copy", () => {
     expect(balance).toContain("depositGatewayUsdc");
     expect(balance).toContain("Get Arc Testnet USDC");
     expect(balance).toContain("fixed inset-0");
+    expect(balance).toContain("createPortal");
+    expect(balance).toContain("document.body");
+    expect(balance).toContain("Wallet USDC");
+    expect(balance).toContain("fetchWalletUsdcBalance");
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowClockwise,
   ArrowSquareOut,
@@ -9,9 +10,13 @@ import {
   X,
 } from "@phosphor-icons/react";
 import {
+  createPublicClient,
   createWalletClient,
   custom,
+  erc20Abi,
+  formatUnits,
   getAddress,
+  http,
   type Address,
   type EIP1193Provider,
 } from "viem";
@@ -21,11 +26,20 @@ import { depositGatewayUsdc } from "@/lib/x402-browser";
 import { GATEWAY_BALANCE_UPDATED_EVENT } from "@/lib/gateway-events";
 
 const ARC_TESTNET_USDC_FAUCET_URL = "https://faucet.circle.com/";
+const ARC_TESTNET_RPC_URL = "https://rpc.testnet.arc.network";
+const ARC_USDC = "0x3600000000000000000000000000000000000000" as const;
+const MICRO_USDC = BigInt(1_000_000);
 
 type BalanceState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "ready"; balance: string }
+  | { status: "error" };
+
+type WalletBalanceState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "ready"; balance: string; microUsdc: bigint }
   | { status: "error" };
 
 function injected(): EIP1193Provider | null {
@@ -84,6 +98,30 @@ async function fetchGatewayBalance(address: string): Promise<string> {
   return cleanUsdc(body.formattedAvailable);
 }
 
+function parseUsdcToMicro(value: string): bigint | null {
+  const trimmed = value.trim();
+  if (!/^\d+(\.\d{0,6})?$/.test(trimmed)) return null;
+  const [whole, fraction = ""] = trimmed.split(".");
+  return BigInt(whole) * MICRO_USDC + BigInt(fraction.padEnd(6, "0"));
+}
+
+async function fetchWalletUsdcBalance(address: string): Promise<{
+  balance: string;
+  microUsdc: bigint;
+}> {
+  const publicClient = createPublicClient({
+    chain: arcTestnet,
+    transport: http(ARC_TESTNET_RPC_URL),
+  });
+  const microUsdc = await publicClient.readContract({
+    address: ARC_USDC,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: [getAddress(address)],
+  });
+  return { balance: cleanUsdc(formatUnits(microUsdc, 6)), microUsdc };
+}
+
 export function StudioGatewayBalance({
   address,
   compact = false,
@@ -102,6 +140,7 @@ export function StudioGatewayBalance({
   const [depositStatus, setDepositStatus] = useState<string | null>(null);
   const [depositError, setDepositError] = useState<string | null>(null);
   const [depositing, setDepositing] = useState(false);
+  const [walletBalance, setWalletBalance] = useState<WalletBalanceState>({ status: "idle" });
 
   useEffect(() => {
     let alive = true;
@@ -125,6 +164,28 @@ export function StudioGatewayBalance({
     };
   }, [address, refresh]);
 
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      await Promise.resolve();
+      if (!alive) return;
+      if (!address || !depositOpen) {
+        setWalletBalance({ status: "idle" });
+        return;
+      }
+      setWalletBalance({ status: "loading" });
+      try {
+        const balance = await fetchWalletUsdcBalance(address);
+        if (alive) setWalletBalance({ status: "ready", ...balance });
+      } catch {
+        if (alive) setWalletBalance({ status: "error" });
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [address, depositOpen, refresh]);
+
   if (!address) return null;
   const targetAddress = getAddress(address);
 
@@ -135,7 +196,21 @@ export function StudioGatewayBalance({
       : state.status === "error"
         ? "Check balance"
         : "Loading";
-  const canDeposit = !depositing && Number.parseFloat(amountUsdc) > 0;
+  const depositMicroUsdc = parseUsdcToMicro(amountUsdc);
+  const amountExceedsWallet =
+    walletBalance.status === "ready" &&
+    depositMicroUsdc != null &&
+    depositMicroUsdc > walletBalance.microUsdc;
+  const canDeposit =
+    !depositing && depositMicroUsdc != null && depositMicroUsdc > 0 && !amountExceedsWallet;
+  const walletBalanceLabel =
+    walletBalance.status === "ready"
+      ? `${walletBalance.balance} USDC`
+      : walletBalance.status === "loading"
+        ? "Checking"
+        : walletBalance.status === "error"
+          ? "Unavailable"
+          : "Open wallet";
 
   async function deposit() {
     if (!canDeposit) return;
@@ -218,7 +293,7 @@ export function StudioGatewayBalance({
         )}
       </div>
 
-      {depositOpen && (
+      {depositOpen && typeof document !== "undefined" && createPortal(
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-zinc-950/70 px-4"
           role="dialog"
@@ -241,6 +316,15 @@ export function StudioGatewayBalance({
               >
                 <X weight="bold" className="size-4" />
               </button>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-border bg-background px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs text-muted-foreground">Wallet USDC</span>
+                <span className="text-xs font-medium tabular text-foreground">
+                  {walletBalanceLabel}
+                </span>
+              </div>
             </div>
 
             <label className="mt-4 block text-xs text-muted-foreground">
@@ -287,6 +371,11 @@ export function StudioGatewayBalance({
               {depositing ? "Depositing..." : "Deposit test USDC"}
             </button>
 
+            {amountExceedsWallet && (
+              <p className="mt-2 text-xs text-destructive">
+                Amount is higher than your wallet USDC balance.
+              </p>
+            )}
             {depositStatus && (
               <p role="status" aria-live="polite" className="mt-2 text-xs text-muted-foreground">
                 {depositStatus}
@@ -294,7 +383,8 @@ export function StudioGatewayBalance({
             )}
             {depositError && <p className="mt-2 text-xs text-destructive">{depositError}</p>}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
