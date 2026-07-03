@@ -8,6 +8,7 @@
  * contract. The library + its native runtime are heavy, so the pipeline is
  * loaded lazily and reused as a singleton across calls.
  */
+import { mkdir } from "node:fs/promises";
 import { EMBEDDING_DIMENSIONS, type EmbeddingProvider } from "./types";
 
 type FeatureExtractor = (
@@ -17,10 +18,25 @@ type FeatureExtractor = (
 
 let extractorPromise: Promise<FeatureExtractor> | null = null;
 
+function transformersCacheDir(): string | null {
+  return (
+    process.env.TRANSFORMERS_CACHE ||
+    process.env.FINDLING_TRANSFORMERS_CACHE_DIR ||
+    (process.env.NODE_ENV === "production"
+      ? "/var/lib/findling/transformers-cache"
+      : null)
+  );
+}
+
 async function getExtractor(): Promise<FeatureExtractor> {
   if (!extractorPromise) {
     extractorPromise = (async () => {
-      const { pipeline } = await import("@huggingface/transformers");
+      const { pipeline, env } = await import("@huggingface/transformers");
+      const cacheDir = transformersCacheDir();
+      if (cacheDir) {
+        await mkdir(cacheDir, { recursive: true });
+        env.cacheDir = cacheDir;
+      }
       const pipe = await pipeline(
         "feature-extraction",
         "Xenova/bge-small-en-v1.5",
