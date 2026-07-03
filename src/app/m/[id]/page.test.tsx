@@ -58,6 +58,7 @@ describe("MomentPage", () => {
 
     expect(html).toContain("<video");
     expect(html).toContain("controls");
+    expect(html).toContain('controlsList="nodownload"');
     expect(html).not.toMatch(/\smuted(?:[=\s>])/);
   });
 });
