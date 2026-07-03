@@ -97,6 +97,7 @@ export default async function MomentPage({
 
         <aside className="lg:pt-1">
           <LicenseCheckout
+            key={initialUser?.id ?? initialUser?.address ?? "signed-out"}
             moment={{
               id: moment.id,
               title: moment.title,
