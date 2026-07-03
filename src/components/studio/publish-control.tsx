@@ -8,6 +8,7 @@ const ERRORS: Record<string, string> = {
   unauthenticated: "Sign in again to publish.",
   ownership_not_attested: "Rights aren't verified yet.",
   clip_not_ready: "The clip isn't ready yet.",
+  preview_not_ready: "The preview isn't ready yet.",
   not_owner: "You don't own this clip.",
 };
 

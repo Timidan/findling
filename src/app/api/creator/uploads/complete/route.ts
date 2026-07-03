@@ -15,7 +15,11 @@ import {
   priceUsdSnapshotFor,
   DEFAULT_MOMENT_PRICE_MICRO_USDC,
 } from "@/server/catalog/catalog";
-import { probeDurationMs, assertWithinMaxDuration } from "@/server/clip/ffmpeg";
+import {
+  probeDurationMs,
+  assertWithinMaxDuration,
+  createUploadDerivatives,
+} from "@/server/clip/ffmpeg";
 import {
   UPLOAD_ATTESTATION_TEXT,
   UPLOAD_ATTESTATION_VERSION,
@@ -89,11 +93,20 @@ export async function POST(req: NextRequest) {
   //    influenced: we measure the size server-side and sniff the container from
   //    the magic bytes (never trusting the client-declared MIME). Rejected
   //    uploads are deleted so orphaned objects don't accumulate.
-  async function rejectAndCleanup(error: string, status: number) {
-    try {
-      await supabaseStorage.removeObject(storageKey as string);
-    } catch (e) {
-      console.error("[uploads/complete] cleanup failed for", storageKey, e);
+  async function rejectAndCleanup(
+    error: string,
+    status: number,
+    extraKeys: Array<string | null | undefined> = [],
+  ) {
+    const keys = [storageKey as string, ...extraKeys].filter(
+      (key): key is string => !!key,
+    );
+    for (const key of keys) {
+      try {
+        await supabaseStorage.removeObject(key);
+      } catch (e) {
+        console.error("[uploads/complete] cleanup failed for", key, e);
+      }
     }
     return NextResponse.json({ error }, { status });
   }
@@ -148,6 +161,25 @@ export async function POST(req: NextRequest) {
     return rejectAndCleanup("Could not read the clip. Is it a valid video?", 400);
   }
 
+  let derivatives: {
+    posterStorageKey: string | null;
+    previewStorageKey: string;
+  };
+  try {
+    const sourceUrl = await supabaseStorage.createSignedDownloadUrl(storageKey, 300);
+    derivatives = await createUploadDerivatives({
+      sourceUrl,
+      creatorId: userId,
+      durationMs,
+    });
+  } catch (e) {
+    console.error("[uploads/complete] derivative generation failed:", e);
+    return rejectAndCleanup(
+      "Could not prepare the clip preview. Please try again.",
+      502,
+    );
+  }
+
   // A direct upload is already the final clip: create the source asset AND a draft
   // moment (at the default price, for the creator to adjust), atomically. The
   // sniffed container — not the client-claimed MIME — is recorded.
@@ -158,6 +190,8 @@ export async function POST(req: NextRequest) {
       title: titleText,
       description: descriptionText,
       storageKey,
+      posterStorageKey: derivatives.posterStorageKey,
+      previewStorageKey: derivatives.previewStorageKey,
       mimeType: container,
       sizeBytes: info.sizeBytes,
       durationMs,
@@ -188,6 +222,9 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     // DB write failed after we accepted the object — clean it up, don't 500/orphan.
     console.error("[uploads/complete] completeUpload failed:", e);
-    return rejectAndCleanup("Could not finalize the upload. Please try again.", 502);
+    return rejectAndCleanup("Could not finalize the upload. Please try again.", 502, [
+      derivatives.posterStorageKey,
+      derivatives.previewStorageKey,
+    ]);
   }
 }

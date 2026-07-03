@@ -73,6 +73,7 @@ export function LicenseCheckout({
   initialUser: Me;
 }) {
   const [busy, setBusy] = useState<null | "fund" | "license">(null);
+  const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [funded, setFunded] = useState(false);
   const [result, setResult] = useState<UnlockResponse | null>(null);
@@ -84,24 +85,33 @@ export function LicenseCheckout({
 
   async function fund() {
     setBusy("fund");
+    setStatus("Opening wallet.");
     setError(null);
     try {
       const { walletClient, account } = await getWallet();
-      await depositGatewayUsdc({ walletClient, account, amountUsdc: "0.50" });
+      await depositGatewayUsdc({
+        walletClient,
+        account,
+        amountUsdc: "0.50",
+        onStatus: setStatus,
+      });
       setFunded(true);
     } catch (e) {
       setError(msg(e));
     } finally {
+      setStatus(null);
       setBusy(null);
     }
   }
 
   async function license() {
     setBusy("license");
+    setStatus("Opening wallet.");
     setError(null);
     try {
       const { walletClient, account } = await getWallet();
       // 1. A fresh fund-once buyer grant, capped to exactly this purchase.
+      setStatus("Creating your clip pass.");
       const grantRes = await fetch("/api/agent/session-grants", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -127,11 +137,13 @@ export function LicenseCheckout({
         walletClient,
         account,
         baseUrl: window.location.origin,
+        onStatus: setStatus,
       });
       setResult(unlock);
     } catch (e) {
       setError(msg(e));
     } finally {
+      setStatus(null);
       setBusy(null);
     }
   }
@@ -215,8 +227,14 @@ export function LicenseCheckout({
             className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
           >
             {busy === "license" && <CircleNotch weight="bold" className="size-4 animate-spin" />}
-            {busy === "license" ? "Confirming in wallet..." : "Use this clip"}
+            {busy === "license" ? "Working..." : "Use this clip"}
           </button>
+
+          {busy === "license" && status && (
+            <p role="status" aria-live="polite" className="mt-2 text-xs text-muted-foreground">
+              {status}
+            </p>
+          )}
 
           <button
             type="button"
@@ -231,6 +249,12 @@ export function LicenseCheckout({
             )}
             {funded ? "Gateway funded. Add more USDC" : "First time? Set up payments"}
           </button>
+
+          {busy === "fund" && status && (
+            <p role="status" aria-live="polite" className="mt-2 text-xs text-muted-foreground">
+              {status}
+            </p>
+          )}
 
           {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 

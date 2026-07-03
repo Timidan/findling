@@ -5,7 +5,11 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/server/db/client";
 import { clipJobs } from "@/server/db/schema";
-import { probeDurationMs, assertWithinMaxDuration } from "./ffmpeg";
+import {
+  probeDurationMs,
+  assertWithinMaxDuration,
+  createUploadDerivatives,
+} from "./ffmpeg";
 import { supabaseStorage } from "@/server/storage/supabase-storage";
 
 const execFileP = promisify(execFile);
@@ -44,6 +48,7 @@ async function ytdlpSection(
 export interface ClipJobResult {
   clipStorageKey: string;
   posterStorageKey: string | null;
+  previewStorageKey: string;
   durationMs: number;
 }
 
@@ -60,7 +65,7 @@ export async function runClipJob(clipJobId: string): Promise<ClipJobResult> {
 
   await mkdir(TMP, { recursive: true });
   const clipPath = `${TMP}/${clipJobId}.mp4`;
-  const posterPath = `${TMP}/${clipJobId}.jpg`;
+  const uploadedKeys: string[] = [];
 
   try {
     if (job.sourceType !== "youtube" || !job.inputReference) {
@@ -82,12 +87,13 @@ export async function runClipJob(clipJobId: string): Promise<ClipJobResult> {
       throw new Error(`Clip exceeds the size cap (${clipBytes} bytes).`);
     }
 
-    // poster frame near the middle (best-effort)
-    await execFileP(
-      "ffmpeg",
-      ["-y", "-ss", (durationMs / 2000).toFixed(3), "-i", clipPath, "-frames:v", "1", "-q:v", "3", posterPath],
-      { timeout: 30_000 },
-    ).catch(() => {});
+    const derivatives = await createUploadDerivatives({
+      sourceUrl: clipPath,
+      creatorId: job.creatorId,
+      durationMs,
+    });
+    uploadedKeys.push(derivatives.previewStorageKey);
+    if (derivatives.posterStorageKey) uploadedKeys.push(derivatives.posterStorageKey);
 
     const clipKey = `clips/${job.creatorId}/${randomUUID()}.mp4`;
     await supabaseStorage.uploadObject({
@@ -95,33 +101,30 @@ export async function runClipJob(clipJobId: string): Promise<ClipJobResult> {
       body: await readFile(clipPath),
       contentType: "video/mp4",
     });
-
-    let posterStorageKey: string | null = null;
-    try {
-      const posterKey = `clips/${job.creatorId}/${randomUUID()}.jpg`;
-      await supabaseStorage.uploadObject({
-        storageKey: posterKey,
-        body: await readFile(posterPath),
-        contentType: "image/jpeg",
-      });
-      posterStorageKey = posterKey;
-    } catch {
-      /* poster is optional */
-    }
+    uploadedKeys.push(clipKey);
 
     await db
       .update(clipJobs)
       .set({
         status: "succeeded",
         outputStorageKey: clipKey,
-        posterStorageKey,
+        posterStorageKey: derivatives.posterStorageKey,
         completedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(clipJobs.id, clipJobId));
 
-    return { clipStorageKey: clipKey, posterStorageKey, durationMs };
+    uploadedKeys.length = 0;
+    return {
+      clipStorageKey: clipKey,
+      posterStorageKey: derivatives.posterStorageKey,
+      previewStorageKey: derivatives.previewStorageKey,
+      durationMs,
+    };
   } catch (err) {
+    await Promise.all(
+      uploadedKeys.map((key) => supabaseStorage.removeObject(key).catch(() => {})),
+    );
     const message = err instanceof Error ? err.message : String(err);
     await db
       .update(clipJobs)
@@ -135,6 +138,5 @@ export async function runClipJob(clipJobId: string): Promise<ClipJobResult> {
     throw err;
   } finally {
     await rm(clipPath, { force: true }).catch(() => {});
-    await rm(posterPath, { force: true }).catch(() => {});
   }
 }

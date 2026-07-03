@@ -71,6 +71,8 @@ export type UnlockResponse = {
   };
 };
 
+type StatusReporter = (message: string) => void;
+
 function randomHex32(): Hex {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
@@ -109,8 +111,10 @@ export async function purchaseMomentLicense(input: {
   walletClient: WalletClient;
   account: Address;
   baseUrl: string;
+  onStatus?: StatusReporter;
 }): Promise<UnlockResponse> {
   const payer = getAddress(input.account);
+  input.onStatus?.("Preparing payment.");
   const route = new URL(
     `/api/payments/x402/moments/${encodeURIComponent(input.momentId)}/unlock`,
     input.baseUrl,
@@ -124,6 +128,7 @@ export async function purchaseMomentLicense(input: {
   });
 
   if (challengeRes.ok) {
+    input.onStatus?.("Checking existing unlock.");
     const alreadyUnlocked = await readJson<UnlockResponse>(challengeRes);
     if (!alreadyUnlocked?.unlockUrl) throw new Error("Unexpected unlock response");
     return alreadyUnlocked;
@@ -163,6 +168,7 @@ export async function purchaseMomentLicense(input: {
     nonce: randomHex32(),
   };
 
+  input.onStatus?.("Waiting for wallet signature.");
   const signature = await input.walletClient.signTypedData({
     account: payer,
     domain: {
@@ -191,6 +197,7 @@ export async function purchaseMomentLicense(input: {
     ...(paymentRequired.extensions ? { extensions: paymentRequired.extensions } : {}),
   } as never);
 
+  input.onStatus?.("Submitting payment.");
   const paidRes = await fetch(route, {
     method: "GET",
     headers: {
@@ -207,6 +214,7 @@ export async function purchaseMomentLicense(input: {
     throw new Error(`Payment failed (${paidRes.status}): ${JSON.stringify(body)}`);
   }
 
+  input.onStatus?.("Clip unlocked.");
   return {
     unlockUrl: body.unlockUrl,
     receiptCode: body.receiptCode ?? null,
@@ -249,7 +257,9 @@ export async function depositGatewayUsdc(input: {
   account: Address;
   amountUsdc: string;
   depositor?: Address;
+  onStatus?: StatusReporter;
 }) {
+  input.onStatus?.("Switching to Arc testnet.");
   await input.walletClient.switchChain({ id: arcTestnet.id });
 
   const publicClient = createPublicClient({
@@ -260,6 +270,7 @@ export async function depositGatewayUsdc(input: {
   const amount = parseUnits(input.amountUsdc, 6);
   const depositor = input.depositor ?? input.account;
 
+  input.onStatus?.("Checking USDC allowance.");
   const allowance = await publicClient.readContract({
     address: ARC_USDC,
     abi: erc20Abi,
@@ -269,6 +280,7 @@ export async function depositGatewayUsdc(input: {
 
   let approvalTxHash: `0x${string}` | undefined;
   if (allowance < amount) {
+    input.onStatus?.("Waiting for approval in your wallet.");
     approvalTxHash = await input.walletClient.writeContract({
       account: input.account,
       address: ARC_USDC,
@@ -277,9 +289,11 @@ export async function depositGatewayUsdc(input: {
       args: [GATEWAY_WALLET, amount],
       chain: arcTestnet,
     });
+    input.onStatus?.("Waiting for approval confirmation.");
     await publicClient.waitForTransactionReceipt({ hash: approvalTxHash });
   }
 
+  input.onStatus?.("Waiting for deposit in your wallet.");
   const depositTxHash =
     depositor.toLowerCase() === input.account.toLowerCase()
       ? await input.walletClient.writeContract({
@@ -301,6 +315,8 @@ export async function depositGatewayUsdc(input: {
           chain: arcTestnet,
         });
 
+  input.onStatus?.("Waiting for deposit confirmation.");
   await publicClient.waitForTransactionReceipt({ hash: depositTxHash });
+  input.onStatus?.("Gateway funded.");
   return { approvalTxHash, depositTxHash };
 }

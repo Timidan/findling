@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidateTag } from "next/cache";
 import { eq } from "drizzle-orm";
 import { requireUserId } from "@/server/auth/current-user";
 import { db } from "@/server/db/client";
@@ -181,6 +182,7 @@ export async function POST(req: NextRequest) {
         durationMs: result.durationMs,
         clipStorageKey: result.clipStorageKey,
         posterStorageKey: result.posterStorageKey,
+        previewStorageKey: result.previewStorageKey,
         priceMicroUsdc,
         priceUsdSnapshot,
       });
@@ -191,6 +193,7 @@ export async function POST(req: NextRequest) {
       if (result.posterStorageKey) {
         await supabaseStorage.removeObject(result.posterStorageKey).catch(() => {});
       }
+      await supabaseStorage.removeObject(result.previewStorageKey).catch(() => {});
       console.error("[youtube import] finalize failed after clip; orphaned objects removed:", e);
       return NextResponse.json(
         { error: "Import finalization failed.", clipJobId: job.id },
@@ -198,12 +201,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    revalidateTag("studio-catalog", "max");
+
     return NextResponse.json({
       assetId: asset.id,
       clipJobId: job.id,
       momentId: moment.id,
       durationMs: result.durationMs,
       clipStorageKey: result.clipStorageKey,
+      previewStorageKey: result.previewStorageKey,
     });
   } finally {
     slot.release();

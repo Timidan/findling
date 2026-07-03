@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   UploadSimple,
   CircleNotch,
@@ -15,10 +16,36 @@ const ALLOWED = ["video/mp4", "video/webm"];
 const MAX_BYTES = 25 * 1024 * 1024;
 const MAX_MS = 60_000;
 
-type Phase = "idle" | "uploading" | "finalizing" | "done" | "error";
+type Phase = "idle" | "preparing" | "uploading" | "processing" | "done" | "error";
 
 const mb = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`;
 const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
+
+function uploadWithProgress(
+  uploadUrl: string,
+  file: File,
+  onProgress: (percent: number) => void,
+) {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", file.type);
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress(100);
+        resolve();
+      } else {
+        reject(new Error("Upload failed. Check your connection and try again."));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Upload failed. Check your connection and try again."));
+    xhr.send(file);
+  });
+}
 
 /**
  * Direct-upload a short clip: read its duration client-side, presign a signed
@@ -26,12 +53,15 @@ const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
  * server's validation (MP4/WebM · ≤25 MB · ≤60 s) for instant feedback.
  */
 export function UploadForm() {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [durationMs, setDurationMs] = useState<number | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [rights, setRights] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [momentId, setMomentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const probeRef = useRef(0); // supersedes stale duration-probe events
@@ -40,6 +70,7 @@ export function UploadForm() {
     (f: File | null) => {
       ++probeRef.current;
       setError(null);
+      setUploadProgress(0);
       setDurationMs(null);
       if (!f) {
         setFile(null);
@@ -88,7 +119,23 @@ export function UploadForm() {
     [],
   );
 
-  const busy = phase === "uploading" || phase === "finalizing";
+  const busy = phase === "preparing" || phase === "uploading" || phase === "processing";
+  const statusText =
+    phase === "preparing"
+      ? "Preparing a secure upload."
+      : phase === "uploading"
+        ? `Uploading video (${uploadProgress}%).`
+        : phase === "processing"
+          ? "Checking the video and making its thumbnail preview. Keep this page open."
+          : "";
+  const buttonText =
+    phase === "preparing"
+      ? "Preparing..."
+      : phase === "uploading"
+        ? `Uploading ${uploadProgress}%`
+        : phase === "processing"
+          ? "Making preview..."
+          : "Upload clip";
 
   const submit = useCallback(
     async (e: FormEvent) => {
@@ -97,7 +144,8 @@ export function UploadForm() {
       if (!title.trim()) return setError("Add a title.");
       if (!rights) return setError("Confirm you can let others use this clip.");
       setError(null);
-      setPhase("uploading");
+      setUploadProgress(0);
+      setPhase("preparing");
       try {
         const pres = await fetch("/api/creator/uploads/presign", {
           method: "POST",
@@ -108,14 +156,10 @@ export function UploadForm() {
         if (!pres.ok) throw new Error(presJson?.error ?? "Could not start the upload.");
         const { uploadUrl, storageKey } = presJson as { uploadUrl: string; storageKey: string };
 
-        const put = await fetch(uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": file.type },
-          body: file,
-        });
-        if (!put.ok) throw new Error("Upload failed. Check your connection and try again.");
+        setPhase("uploading");
+        await uploadWithProgress(uploadUrl, file, setUploadProgress);
 
-        setPhase("finalizing");
+        setPhase("processing");
         const comp = await fetch("/api/creator/uploads/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -126,15 +170,17 @@ export function UploadForm() {
             attestationAccepted: true,
           }),
         });
-        const compJson = await comp.json().catch(() => null);
+        const compJson = (await comp.json().catch(() => null)) as { momentId?: string; error?: string } | null;
         if (!comp.ok) throw new Error(compJson?.error ?? "Could not finish the clip.");
+        setMomentId(compJson?.momentId ?? null);
+        router.refresh();
         setPhase("done");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong.");
         setPhase("error");
       }
     },
-    [file, durationMs, title, description, rights],
+    [file, durationMs, title, description, rights, router],
   );
 
   if (phase === "done") {
@@ -152,7 +198,7 @@ export function UploadForm() {
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <Link
-            href="/studio/clips"
+            href={momentId ? `/studio/clips?moment=${encodeURIComponent(momentId)}` : "/studio/clips"}
             className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98]"
           >
             Go to Clips
@@ -165,6 +211,8 @@ export function UploadForm() {
               setTitle("");
               setDescription("");
               setRights(false);
+              setUploadProgress(0);
+              setMomentId(null);
               setPhase("idle");
             }}
             className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary/60"
@@ -275,6 +323,27 @@ export function UploadForm() {
         </p>
       )}
 
+      {busy && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-xl border border-border bg-card px-4 py-3 text-sm"
+        >
+          <div className="flex items-center gap-2">
+            <CircleNotch weight="bold" className="size-4 shrink-0 animate-spin text-sage" />
+            <span>{statusText}</span>
+          </div>
+          {phase === "uploading" && (
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full bg-sage transition-[width]"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       <button
         type="submit"
         disabled={busy || !file || durationMs == null}
@@ -283,7 +352,7 @@ export function UploadForm() {
         {busy ? (
           <>
             <CircleNotch weight="bold" className="size-4 animate-spin" />
-            {phase === "finalizing" ? "Finalizing..." : "Uploading..."}
+            {buttonText}
           </>
         ) : (
           <>

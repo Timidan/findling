@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   MagnifyingGlass,
@@ -55,15 +55,21 @@ export function FindShell({
   const router = useRouter();
   const params = useSearchParams();
   const [q, setQ] = useState(query);
+  const [isPending, startTransition] = useTransition();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const paramString = params?.toString() ?? "";
 
-  function go(next: Record<string, string | null>) {
-    const p = new URLSearchParams(params?.toString() ?? "");
+  function hrefFor(next: Record<string, string | null>) {
+    const p = new URLSearchParams(paramString);
     for (const [k, v] of Object.entries(next)) {
       if (v == null || v === "") p.delete(k);
       else p.set(k, v);
     }
-    router.push(`/find?${p.toString()}`);
+    const qs = p.toString();
+    return qs ? `/find?${qs}` : "/find";
+  }
+  function go(next: Record<string, string | null>) {
+    router.push(hrefFor(next));
   }
   function clearFilters() {
     const keep = new URLSearchParams();
@@ -73,6 +79,20 @@ export function FindShell({
     }
     router.push(`/find?${keep.toString()}`);
   }
+
+  useEffect(() => {
+    const nextQuery = q.trim();
+    if (nextQuery === query) return;
+    const id = window.setTimeout(() => {
+      const p = new URLSearchParams(paramString);
+      if (nextQuery) p.set("q", nextQuery);
+      else p.delete("q");
+      const qs = p.toString();
+      const href = qs ? `/find?${qs}` : "/find";
+      startTransition(() => router.replace(href, { scroll: false }));
+    }, 300);
+    return () => window.clearTimeout(id);
+  }, [paramString, q, query, router]);
 
   const activeTab = tab || "all";
   const activeFilterCount = FILTER_GROUPS.filter((g) => params?.get(g.key)).length;
@@ -84,6 +104,7 @@ export function FindShell({
           e.preventDefault();
           go({ q: q.trim() || null });
         }}
+        aria-busy={isPending}
         className="flex items-center gap-2 rounded-full border border-border bg-card px-4 py-3 shadow-sm"
       >
         <MagnifyingGlass weight="bold" className="size-5 shrink-0 text-muted-foreground" />

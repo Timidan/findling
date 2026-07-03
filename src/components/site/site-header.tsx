@@ -42,7 +42,7 @@ export function SiteHeader({
     >
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-3 px-5 sm:justify-between sm:gap-6">
         <Link href="/" aria-label="Findling home" className="shrink-0">
-          <FindlingLogo size="1.5rem" wordClassName="text-2xl" />
+          <FindlingLogo size="1.5rem" wordClassName="hidden text-2xl min-[390px]:inline" />
         </Link>
 
         {/* On phones the nav scrolls horizontally so every section stays reachable
@@ -72,7 +72,11 @@ export function SiteHeader({
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
-          <ConnectWallet initialUser={initialUser} />
+          <ConnectWallet
+            key={initialUser?.id ?? initialUser?.address ?? "signed-out"}
+            initialUser={initialUser}
+            compactOnMobile
+          />
           <ThemeToggle />
         </div>
       </div>

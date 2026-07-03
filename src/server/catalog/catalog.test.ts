@@ -6,6 +6,7 @@ const base: PublishableMoment = {
   creatorId: OWNER,
   status: "draft",
   clipStorageKey: "moments/clip.mp4",
+  previewStorageKey: "previews/clip.mp4",
   ownershipVerified: true,
   attestationAt: new Date("2026-01-01T00:00:00Z"),
 };
@@ -41,6 +42,13 @@ describe("checkPublishable", () => {
     expect(checkPublishable({ ...base, clipStorageKey: null }, OWNER)).toEqual({
       ok: false,
       reason: "clip_not_ready",
+    });
+  });
+
+  it("rejects when the preview is not ready", () => {
+    expect(checkPublishable({ ...base, previewStorageKey: null }, OWNER)).toEqual({
+      ok: false,
+      reason: "preview_not_ready",
     });
   });
 

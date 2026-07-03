@@ -48,7 +48,10 @@ describe("plain language product copy", () => {
       "tracking-[0.18em]",
     );
     expect(source("src/components/site/site-header.tsx")).toContain(
-      "<ConnectWallet initialUser={initialUser} />",
+      "initialUser={initialUser}",
+    );
+    expect(source("src/components/site/site-header.tsx")).toContain(
+      "compactOnMobile",
     );
   });
 });

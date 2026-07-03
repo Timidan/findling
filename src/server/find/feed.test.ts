@@ -260,12 +260,39 @@ describe("getLicensableFeed", () => {
     ];
     signRows(rows);
     queueRows(rows);
+    queueRows([]);
 
     const items = await getLicensableFeed({ query: "arena celebration", limit: 10 });
 
     expect(mocks.provider.embed).toHaveBeenCalledWith(["arena celebration"]);
     expect(mocks.lastQuery?.orderBy).toHaveBeenCalledTimes(1);
     expect(items.map((item) => item.id)).toEqual(["closer", "farther"]);
+  });
+
+  it("falls back to lexical search when the embedding provider fails", async () => {
+    const rows = [
+      availableRow("relationship", { title: "Relationship advice" }),
+    ];
+    signRows(rows);
+    queueRows(rows);
+    mocks.provider.embed.mockRejectedValueOnce(new Error("provider unavailable"));
+
+    const items = await getLicensableFeed({ query: "relationship", limit: 10 });
+
+    expect(items.map((item) => item.id)).toEqual(["relationship"]);
+  });
+
+  it("finds title matches when a moment has no embedding row yet", async () => {
+    const rows = [
+      availableRow("relationship", { title: "Relationship advice" }),
+    ];
+    signRows(rows);
+    queueRows([]);
+    queueRows(rows);
+
+    const items = await getLicensableFeed({ query: "relationship", limit: 10 });
+
+    expect(items.map((item) => item.id)).toEqual(["relationship"]);
   });
 
   it("uses recency without embedding when the query is empty", async () => {

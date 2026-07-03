@@ -55,8 +55,9 @@ export async function POST(
     return NextResponse.json({ error: res.reason }, { status: REASON_STATUS[res.reason] ?? 409 });
   }
 
-  // status flipped to published — bust the cached studio catalog ("studio-catalog")
+  // status flipped to published — bust both creator and public feed caches.
   revalidateTag("studio-catalog", "max");
+  revalidateTag("find-feed", "max");
 
   // Make it discoverable now. The moment is already published; embedding is what
   // makes it appear in agent search, so we surface the real outcome (and mark the

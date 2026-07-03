@@ -113,6 +113,8 @@ export interface CompleteUploadInput {
   title: string;
   description?: string | null;
   storageKey: string; // the uploaded object — already the final clip
+  posterStorageKey?: string | null;
+  previewStorageKey: string;
   mimeType: string; // server-sniffed container
   sizeBytes: number; // server-measured size
   durationMs: number; // server-probed duration
@@ -166,6 +168,8 @@ export async function completeUpload(input: CompleteUploadInput) {
         clipStorageKey: input.storageKey,
         clipMimeType: input.mimeType,
         clipSizeBytes: input.sizeBytes,
+        posterStorageKey: input.posterStorageKey ?? null,
+        previewStorageKey: input.previewStorageKey,
         priceMicroUsdc: input.priceMicroUsdc,
         priceUsdSnapshot: input.priceUsdSnapshot,
         usageType: "video_embed",
@@ -248,6 +252,7 @@ export interface CompleteMomentInput {
   durationMs: number;
   clipStorageKey: string;
   posterStorageKey?: string | null;
+  previewStorageKey: string;
   priceMicroUsdc: number;
   priceUsdSnapshot: string;
 }
@@ -266,6 +271,7 @@ export async function completeImportedMoment(input: CompleteMomentInput) {
       clipStorageKey: input.clipStorageKey,
       clipMimeType: "video/mp4",
       posterStorageKey: input.posterStorageKey ?? null,
+      previewStorageKey: input.previewStorageKey,
       priceMicroUsdc: input.priceMicroUsdc,
       priceUsdSnapshot: input.priceUsdSnapshot,
       usageType: "video_embed",

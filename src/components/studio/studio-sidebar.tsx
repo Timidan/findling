@@ -107,7 +107,11 @@ export function StudioSidebar({
             </div>
           </div>
           <div className="mt-2">
-            <ConnectWallet className="w-full justify-center" initialUser={initialUser} />
+            <ConnectWallet
+              key={initialUser?.id ?? initialUser?.address ?? "signed-out"}
+              className="w-full justify-center"
+              initialUser={initialUser}
+            />
           </div>
           <div className="mt-1 flex items-center justify-end">
             <ThemeToggle />
@@ -118,10 +122,14 @@ export function StudioSidebar({
       {/* Mobile top bar — brand + wallet (so auth-only studio isn't dead-ended on phones) */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-md lg:hidden">
         <Link href="/" aria-label="Findling home" className="shrink-0">
-          <FindlingLogo size="1.45rem" wordClassName="text-xl" />
+          <FindlingLogo size="1.45rem" wordClassName="hidden text-xl min-[360px]:inline" />
         </Link>
         <div className="flex min-w-0 items-center gap-2">
-          <ConnectWallet initialUser={initialUser} />
+          <ConnectWallet
+            key={initialUser?.id ?? initialUser?.address ?? "signed-out"}
+            initialUser={initialUser}
+            compactOnMobile
+          />
           <ThemeToggle className="shrink-0" />
         </div>
       </header>

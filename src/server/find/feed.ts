@@ -297,6 +297,49 @@ async function recentAvailableRows(
     .limit(limit);
 }
 
+async function lexicalAvailableRows(
+  query: string,
+  filters: NormalizedFilters,
+  limit: number,
+): Promise<AvailableQueryRow[]> {
+  const like = `%${query}%`;
+  return db
+    .select(baseAvailableSelect())
+    .from(moments)
+    .innerJoin(assets, eq(assets.id, moments.assetId))
+    .innerJoin(users, eq(users.id, moments.creatorId))
+    .where(
+      and(
+        ...availableSqlFilters(filters),
+        or(
+          ilike(moments.title, like),
+          ilike(moments.description, like),
+          ilike(assets.title, like),
+          ilike(assets.description, like),
+          ilike(assets.sourceUrl, like),
+        )!,
+      ),
+    )
+    .orderBy(desc(moments.createdAt))
+    .limit(limit);
+}
+
+function mergeAvailableRows(
+  primary: AvailableQueryRow[],
+  secondary: AvailableQueryRow[],
+  limit: number,
+): AvailableQueryRow[] {
+  const seen = new Set<string>();
+  const out: AvailableQueryRow[] = [];
+  for (const row of [...primary, ...secondary]) {
+    if (seen.has(row.moment.id)) continue;
+    seen.add(row.moment.id);
+    out.push(row);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 async function availableItemsFromRows(
   rows: AvailableQueryRow[],
   filters: NormalizedFilters,
@@ -350,9 +393,22 @@ export async function getLicensableFeed(
   const limit = clampFeedLimit(opts.limit);
   const query = normalizeQuery(opts.query);
   const filters = normalizeFilters(opts.filters);
-  const rows = query
-    ? await semanticAvailableRows(query, filters, limit)
-    : await recentAvailableRows(filters, limit);
+  let rows: AvailableQueryRow[];
+  if (query) {
+    let semanticRows: AvailableQueryRow[] = [];
+    try {
+      semanticRows = await semanticAvailableRows(query, filters, limit);
+    } catch (e) {
+      console.error("[find/feed] semantic search failed; using text search:", e);
+    }
+    const lexicalRows =
+      semanticRows.length >= limit
+        ? []
+        : await lexicalAvailableRows(query, filters, limit);
+    rows = mergeAvailableRows(semanticRows, lexicalRows, limit);
+  } else {
+    rows = await recentAvailableRows(filters, limit);
+  }
   return availableItemsFromRows(rows, filters);
 }
 

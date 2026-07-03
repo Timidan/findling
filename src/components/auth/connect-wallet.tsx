@@ -53,6 +53,7 @@ export function ConnectWallet({
   className,
   initialUser,
   onAuthChange,
+  compactOnMobile = false,
 }: {
   className?: string;
   /** Server-seeded session user so the button hydrates already-connected — no
@@ -64,6 +65,7 @@ export function ConnectWallet({
    *  connected). Lets a parent — e.g. the license checkout — drive a single
    *  state-aware CTA off the same source of truth instead of a second /me fetch. */
   onAuthChange?: (me: Me) => void;
+  compactOnMobile?: boolean;
 }) {
   const router = useRouter();
   // `undefined` = not yet known; `null` = known-logged-out; a user = connected.
@@ -197,7 +199,12 @@ export function ConnectWallet({
         )}
       >
         <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground/40" />
-        <span className="h-3 w-16 animate-pulse rounded bg-muted-foreground/20" />
+        <span
+          className={cn(
+            "h-3 w-16 animate-pulse rounded bg-muted-foreground/20",
+            compactOnMobile && "hidden sm:block",
+          )}
+        />
       </span>
     );
   }
@@ -209,13 +216,16 @@ export function ConnectWallet({
         onClick={signOut}
         disabled={busy}
         title={`${me.address}: sign out`}
+        aria-label={`${me.address}: sign out`}
         className={cn(
           "tabular inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:bg-secondary/60",
           className,
         )}
       >
         <span className="size-1.5 rounded-full bg-sage" />
-        {shorten(me.address)}
+        <span className={cn(compactOnMobile && "hidden sm:inline")}>
+          {shorten(me.address)}
+        </span>
         <SignOut weight="bold" className="size-3.5 text-muted-foreground" />
       </button>
     );
@@ -228,6 +238,7 @@ export function ConnectWallet({
         onClick={signIn}
         disabled={busy}
         title={error ?? "Sign in with your wallet"}
+        aria-label="Connect wallet"
         aria-describedby={error ? errorId : undefined}
         className={cn(
           "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-60",
@@ -239,7 +250,9 @@ export function ConnectWallet({
         ) : (
           <Wallet weight="fill" className="size-3.5" />
         )}
-        {busy ? "Signing..." : "Connect wallet"}
+        <span className={cn(compactOnMobile && "hidden sm:inline")}>
+          {busy ? "Signing..." : "Connect wallet"}
+        </span>
       </button>
       <span id={errorId} role="alert" aria-live="assertive" className="sr-only">
         {error ?? ""}

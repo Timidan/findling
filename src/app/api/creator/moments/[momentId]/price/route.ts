@@ -3,6 +3,7 @@
  * Price is integer micro-USDC (1 USDC = 1_000_000). Bounded to $0.001 … $100.
  */
 import { NextResponse, type NextRequest } from "next/server";
+import { revalidateTag } from "next/cache";
 import { requireUserId, UnauthenticatedError } from "@/server/auth/current-user";
 import { isSameOrigin } from "@/server/auth/csrf";
 import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
@@ -63,6 +64,10 @@ export async function PATCH(
   if (!moment) {
     return NextResponse.json({ error: "moment_not_found" }, { status: 404 });
   }
+
+  revalidateTag("studio-catalog", "max");
+  if (moment.status === "published") revalidateTag("find-feed", "max");
+
   return NextResponse.json({
     ok: true,
     priceMicroUsdc: moment.priceMicroUsdc,

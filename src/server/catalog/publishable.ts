@@ -8,6 +8,7 @@ export interface PublishableMoment {
   creatorId: string;
   status: string;
   clipStorageKey: string | null;
+  previewStorageKey: string | null;
   ownershipVerified: boolean;
   attestationAt: Date | null;
 }
@@ -16,8 +17,8 @@ export type Publishability = { ok: true } | { ok: false; reason: string };
 
 /**
  * A moment is publishable (draft → published) only when the caller owns it, it's
- * a draft, its clip exists, and ownership is attested — the same bar the unlock
- * route enforces before serving a paid clip.
+ * a draft, its clip + preview exist, and ownership is attested — the same bar
+ * discovery needs before showing a paid clip.
  */
 export function checkPublishable(
   moment: PublishableMoment | null | undefined,
@@ -30,6 +31,7 @@ export function checkPublishable(
     return { ok: false, reason: `not_publishable_from_${moment.status}` };
   }
   if (!moment.clipStorageKey) return { ok: false, reason: "clip_not_ready" };
+  if (!moment.previewStorageKey) return { ok: false, reason: "preview_not_ready" };
   if (!moment.ownershipVerified || !moment.attestationAt) {
     return { ok: false, reason: "ownership_not_attested" };
   }

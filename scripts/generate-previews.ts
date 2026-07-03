@@ -1,8 +1,8 @@
 /**
- * Generate low-res, watermarked PREVIEW renditions for any published moment that
- * has a licensed clip but no preview yet, and set `previewStorageKey`. The Feed
- * serves these previews; the full-quality clipStorageKey is the licensed
- * deliverable, signed only by the x402 unlock route AFTER payment.
+ * Generate missing low-res, watermarked PREVIEW renditions and first-frame
+ * POSTERS for moments that already have a licensed clip. The Feed serves these
+ * previews/posters; the full-quality clipStorageKey is the licensed deliverable,
+ * signed only by the x402 unlock route AFTER payment.
  *
  *   npx tsx --env-file=.env.local scripts/generate-previews.ts
  */
@@ -11,7 +11,7 @@ import { readFileSync, writeFileSync, unlinkSync, existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, or } from "drizzle-orm";
 import { createClient } from "@supabase/supabase-js";
 import * as schema from "../src/server/db/schema";
 
@@ -38,46 +38,79 @@ async function main() {
     .where(
       and(
         isNotNull(schema.moments.clipStorageKey),
-        isNull(schema.moments.previewStorageKey),
+        or(
+          isNull(schema.moments.previewStorageKey),
+          isNull(schema.moments.posterStorageKey),
+        )!,
       ),
     );
-  console.log(`${rows.length} moment(s) need a preview${font ? " (watermarked)" : " (no font → plain 480p)"}\n`);
+  console.log(`${rows.length} moment(s) need media backfill${font ? " (watermarked)" : " (no font, plain 480p)"}\n`);
 
   for (const m of rows) {
     const src = `/tmp/clip-${randomUUID()}.mp4`;
+    const poster = `/tmp/poster-${randomUUID()}.jpg`;
     const out = `/tmp/preview-${randomUUID()}.mp4`;
 
-    const dl = await supa.storage.from("moments").download(m.clipStorageKey!);
-    if (dl.error) throw dl.error;
-    writeFileSync(src, Buffer.from(await dl.data.arrayBuffer()));
+    try {
+      const dl = await supa.storage.from("moments").download(m.clipStorageKey!);
+      if (dl.error) throw dl.error;
+      writeFileSync(src, Buffer.from(await dl.data.arrayBuffer()));
 
-    const vf = font
-      ? `scale=-2:480,drawtext=fontfile=${font}:text='findling preview':fontcolor=white@0.6:fontsize=20:x=(w-text_w)/2:y=h-36:box=1:boxcolor=black@0.35:boxborderw=8`
-      : `scale=-2:480`;
-    execFileSync(
-      "ffmpeg",
-      ["-y", "-loglevel", "error", "-i", src, "-vf", vf, "-c:v", "libx264", "-preset", "fast", "-crf", "30", "-an", "-movflags", "+faststart", out],
-      { stdio: ["ignore", "ignore", "inherit"] },
-    );
+      const patch: {
+        updatedAt: Date;
+        posterStorageKey?: string;
+        previewStorageKey?: string;
+      } = {
+        updatedAt: new Date(),
+      };
 
-    const key = `previews/demo/preview-${randomUUID()}.mp4`;
-    const up = await supa.storage
-      .from("moments")
-      .upload(key, readFileSync(out), { contentType: "video/mp4", upsert: true });
-    if (up.error) throw up.error;
+      if (!m.posterStorageKey) {
+        execFileSync(
+          "ffmpeg",
+          ["-y", "-loglevel", "error", "-ss", "0", "-i", src, "-frames:v", "1", "-q:v", "3", poster],
+          { stdio: ["ignore", "ignore", "inherit"] },
+        );
+        const posterKey = `clips/${m.creatorId}/poster-${randomUUID()}.jpg`;
+        const posterUpload = await supa.storage
+          .from("moments")
+          .upload(posterKey, readFileSync(poster), { contentType: "image/jpeg", upsert: true });
+        if (posterUpload.error) throw posterUpload.error;
+        patch.posterStorageKey = posterKey;
+      }
 
-    await db
-      .update(schema.moments)
-      .set({ previewStorageKey: key, updatedAt: new Date() })
-      .where(eq(schema.moments.id, m.id));
+      if (!m.previewStorageKey) {
+        const vf = font
+          ? `scale=-2:480,drawtext=fontfile=${font}:text='findling preview':fontcolor=white@0.6:fontsize=20:x=(w-text_w)/2:y=h-36:box=1:boxcolor=black@0.35:boxborderw=8`
+          : `scale=-2:480`;
+        execFileSync(
+          "ffmpeg",
+          ["-y", "-loglevel", "error", "-i", src, "-vf", vf, "-c:v", "libx264", "-preset", "fast", "-crf", "30", "-an", "-movflags", "+faststart", out],
+          { stdio: ["ignore", "ignore", "inherit"] },
+        );
 
-    unlinkSync(src);
-    unlinkSync(out);
-    console.log(`  ✓ "${m.title}" → ${key}`);
+        const previewKey = `previews/${m.creatorId}/preview-${randomUUID()}.mp4`;
+        const previewUpload = await supa.storage
+          .from("moments")
+          .upload(previewKey, readFileSync(out), { contentType: "video/mp4", upsert: true });
+        if (previewUpload.error) throw previewUpload.error;
+        patch.previewStorageKey = previewKey;
+      }
+
+      await db
+        .update(schema.moments)
+        .set(patch)
+        .where(eq(schema.moments.id, m.id));
+
+      console.log(`  ✓ "${m.title}"`);
+    } finally {
+      if (existsSync(src)) unlinkSync(src);
+      if (existsSync(poster)) unlinkSync(poster);
+      if (existsSync(out)) unlinkSync(out);
+    }
   }
 
   await sql.end();
-  console.log("\ndone — Feed now serves previews; licensed clips stay behind payment.");
+  console.log("\ndone - Feed now serves previews; licensed clips stay behind payment.");
   process.exit(0);
 }
 
