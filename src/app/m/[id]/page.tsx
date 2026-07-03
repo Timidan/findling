@@ -54,7 +54,6 @@ export default async function MomentPage({
               src={moment.previewUrl}
               poster={moment.posterUrl ?? undefined}
               controls
-              muted
               loop
               playsInline
               className="size-full object-contain"

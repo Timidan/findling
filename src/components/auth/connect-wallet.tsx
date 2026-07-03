@@ -3,13 +3,26 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { EIP1193Provider } from "viem";
-import { Wallet, SignOut, CircleNotch, ArrowSquareOut, X } from "@phosphor-icons/react";
+import {
+  Wallet,
+  SignOut,
+  CircleNotch,
+  ArrowSquareOut,
+  ArrowClockwise,
+  X,
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 export type Me = { id: string; address: string | null; displayName: string | null } | null;
 
 const AUTH_ME_TIMEOUT_MS = 8_000;
 type WalletLink = { label: string; href: string };
+type WalletHelpAction = "mobile_links" | "reload" | "wallets";
+export type WalletConnectHelp = {
+  title: string;
+  message: string;
+  action: WalletHelpAction;
+};
 
 function shorten(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -44,6 +57,50 @@ function mobileWalletLinks(url: string): WalletLink[] {
   ];
 }
 
+function errorMessage(reason: unknown): string {
+  return reason instanceof Error ? reason.message : String(reason);
+}
+
+function isChunkLoadFailure(reason: unknown): boolean {
+  const message = errorMessage(reason);
+  return /ChunkLoadError|Failed to load chunk|Loading chunk .* failed|dynamically imported module/i.test(
+    message,
+  );
+}
+
+export function getWalletConnectHelp(
+  reason: unknown,
+  opts: { mobile?: boolean } = {},
+): WalletConnectHelp {
+  if (isChunkLoadFailure(reason)) {
+    return {
+      title: "Reload needed",
+      message: "The app updated while this page was open. Reload, then connect your wallet again.",
+      action: "reload",
+    };
+  }
+
+  if (reason === "missing_provider") {
+    return opts.mobile
+      ? {
+          title: "Wallet needed",
+          message: "Open Findling inside your wallet app, then connect again.",
+          action: "mobile_links",
+        }
+      : {
+          title: "Wallet needed",
+          message: "No browser wallet was detected. Enable a browser wallet extension, then connect again.",
+          action: "wallets",
+        };
+  }
+
+  return {
+    title: "Wallet error",
+    message: errorMessage(reason) || "Could not connect your wallet. Reload and try again.",
+    action: "reload",
+  };
+}
+
 /**
  * Sign-In With Ethereum button. Connects the injected browser wallet, signs a
  * SIWE message against a server nonce, and establishes the session cookie. Shows
@@ -73,6 +130,7 @@ export function ConnectWallet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [walletHelpOpen, setWalletHelpOpen] = useState(false);
+  const [walletHelp, setWalletHelp] = useState<WalletConnectHelp | null>(null);
   const [walletLinks, setWalletLinks] = useState<WalletLink[]>([]);
   const errorId = useId();
 
@@ -127,11 +185,14 @@ export function ConnectWallet({
     const provider = injected();
     if (!provider) {
       const mobile = isMobileBrowser();
-      const message = mobile
-        ? "Open Findling in a wallet browser, then connect again."
-        : "No wallet found. Install a browser wallet.";
-      setError(message);
-      setWalletLinks(mobile && typeof window !== "undefined" ? mobileWalletLinks(window.location.href) : []);
+      const help = getWalletConnectHelp("missing_provider", { mobile });
+      setWalletHelp(help);
+      setError(help.message);
+      setWalletLinks(
+        help.action === "mobile_links" && typeof window !== "undefined"
+          ? mobileWalletLinks(window.location.href)
+          : [],
+      );
       setWalletHelpOpen(true);
       return;
     }
@@ -166,7 +227,10 @@ export function ConnectWallet({
       // checkout) reveal their signed-in state without a manual refresh.
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "sign-in failed");
+      const help = getWalletConnectHelp(e);
+      setWalletHelp(help);
+      setError(help.message);
+      setWalletLinks([]);
       setWalletHelpOpen(true);
     } finally {
       setBusy(false);
@@ -266,7 +330,7 @@ export function ConnectWallet({
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold">Wallet needed</p>
+              <p className="text-sm font-semibold">{walletHelp?.title ?? "Wallet needed"}</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {error ?? "Open this page in a wallet browser, then connect again."}
               </p>
@@ -280,7 +344,16 @@ export function ConnectWallet({
               <X weight="bold" className="size-4" />
             </button>
           </div>
-          {walletLinks.length > 0 ? (
+          {walletHelp?.action === "reload" ? (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98]"
+            >
+              Reload page
+              <ArrowClockwise weight="bold" className="size-4" />
+            </button>
+          ) : walletLinks.length > 0 ? (
             <div className="mt-3 grid gap-2">
               {walletLinks.map((link) => (
                 <a
@@ -295,12 +368,12 @@ export function ConnectWallet({
             </div>
           ) : (
             <a
-              href="https://metamask.io/download/"
+              href="https://ethereum.org/en/wallets/find-wallet/"
               target="_blank"
               rel="noreferrer"
               className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98]"
             >
-              Install MetaMask
+              Find wallet options
               <ArrowSquareOut weight="bold" className="size-4" />
             </a>
           )}

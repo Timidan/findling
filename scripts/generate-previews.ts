@@ -5,6 +5,7 @@
  * signed only by the x402 unlock route AFTER payment.
  *
  *   npx tsx --env-file=.env.local scripts/generate-previews.ts
+ *   npx tsx --env-file=.env.local scripts/generate-previews.ts --replace-previews
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, unlinkSync, existsSync } from "node:fs";
@@ -21,6 +22,7 @@ const FONT_CANDIDATES = [
   "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
   "/usr/share/fonts/noto/NotoSans-Regular.ttf",
 ];
+const REPLACE_PREVIEWS = process.argv.includes("--replace-previews");
 
 async function main() {
   const font = FONT_CANDIDATES.find(existsSync) ?? null;
@@ -36,15 +38,19 @@ async function main() {
     .select()
     .from(schema.moments)
     .where(
-      and(
-        isNotNull(schema.moments.clipStorageKey),
-        or(
-          isNull(schema.moments.previewStorageKey),
-          isNull(schema.moments.posterStorageKey),
-        )!,
-      ),
+      REPLACE_PREVIEWS
+        ? isNotNull(schema.moments.clipStorageKey)
+        : and(
+            isNotNull(schema.moments.clipStorageKey),
+            or(
+              isNull(schema.moments.previewStorageKey),
+              isNull(schema.moments.posterStorageKey),
+            )!,
+          ),
     );
-  console.log(`${rows.length} moment(s) need media backfill${font ? " (watermarked)" : " (no font, plain 480p)"}\n`);
+  console.log(
+    `${rows.length} moment(s) need ${REPLACE_PREVIEWS ? "preview refresh" : "media backfill"}${font ? " (watermarked)" : " (no font, plain 480p)"}\n`,
+  );
 
   for (const m of rows) {
     const src = `/tmp/clip-${randomUUID()}.mp4`;
@@ -63,6 +69,7 @@ async function main() {
       } = {
         updatedAt: new Date(),
       };
+      const oldPreviewKey = m.previewStorageKey;
 
       if (!m.posterStorageKey) {
         execFileSync(
@@ -78,13 +85,39 @@ async function main() {
         patch.posterStorageKey = posterKey;
       }
 
-      if (!m.previewStorageKey) {
+      if (REPLACE_PREVIEWS || !m.previewStorageKey) {
         const vf = font
           ? `scale=-2:480,drawtext=fontfile=${font}:text='findling preview':fontcolor=white@0.6:fontsize=20:x=(w-text_w)/2:y=h-36:box=1:boxcolor=black@0.35:boxborderw=8`
           : `scale=-2:480`;
         execFileSync(
           "ffmpeg",
-          ["-y", "-loglevel", "error", "-i", src, "-vf", vf, "-c:v", "libx264", "-preset", "fast", "-crf", "30", "-an", "-movflags", "+faststart", out],
+          [
+            "-y",
+            "-loglevel",
+            "error",
+            "-i",
+            src,
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a?",
+            "-vf",
+            vf,
+            "-c:v",
+            "libx264",
+            "-preset",
+            "fast",
+            "-crf",
+            "30",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "96k",
+            "-shortest",
+            "-movflags",
+            "+faststart",
+            out,
+          ],
           { stdio: ["ignore", "ignore", "inherit"] },
         );
 
@@ -100,6 +133,10 @@ async function main() {
         .update(schema.moments)
         .set(patch)
         .where(eq(schema.moments.id, m.id));
+
+      if (REPLACE_PREVIEWS && oldPreviewKey && patch.previewStorageKey) {
+        await supa.storage.from("moments").remove([oldPreviewKey]);
+      }
 
       console.log(`  ✓ "${m.title}"`);
     } finally {
