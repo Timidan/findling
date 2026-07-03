@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
-import { getCurrentUserId } from "@/server/auth/current-user";
+import { getSessionUser } from "@/server/auth/current-user";
 import { listGrants, grantView } from "@/server/grants/grants";
 import { db } from "@/server/db/client";
 import { agentCredentials } from "@/server/db/schema";
@@ -10,7 +10,8 @@ import { StudioAuthGate } from "@/components/studio/studio-auth-gate";
 export const dynamic = "force-dynamic";
 
 export default async function AgentsPage() {
-  const userId = await getCurrentUserId();
+  const sessionUser = await getSessionUser();
+  const userId = sessionUser?.id ?? null;
   const hdrs = await headers();
   const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL;
   const host = hdrs.get("host") ?? "findling.timidan.xyz";
@@ -73,21 +74,23 @@ export default async function AgentsPage() {
           Agent Readiness
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Give an agent a key so it can search, pay for clips, unlock them, and keep receipts.
-          Set limits before sharing a key. The agent can only spend and act within those limits.
+          Create a key, set a spending limit, then connect your agent.
         </p>
       </div>
 
       <div className="mt-8">
-        <AgentsPanel initialCreds={creds} initialGrants={grants} initialOrigin={origin} />
+        <AgentsPanel
+          initialCreds={creds}
+          initialGrants={grants}
+          initialOrigin={origin}
+          walletAddress={sessionUser?.address ?? null}
+        />
       </div>
 
       <p className="mt-8 text-xs text-muted-foreground">
-        Agents authenticate via{" "}
-        <code className="rounded bg-secondary px-1 py-0.5">Authorization: Bearer</code> on REST
-        and MCP. The headless SIWE flow (wallet-to-key) lives at{" "}
-        <code className="rounded bg-secondary px-1 py-0.5">/api/agent/auth</code> for automated
-        onboarding.{" "}
+        Agents use{" "}
+        <code className="rounded bg-secondary px-1 py-0.5">Authorization: Bearer</code> for REST
+        and MCP.{" "}
         <a
           href="/skill.md"
           className="font-medium text-foreground underline-offset-4 hover:underline"

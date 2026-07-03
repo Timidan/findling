@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
+  CaretDown,
   Key,
   Plus,
   Trash,
@@ -15,6 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { formatDate, formatMicroUsdc } from "@/lib/format";
+import { GATEWAY_BALANCE_UPDATED_EVENT } from "@/lib/gateway-events";
 
 export type CredRow = {
   id: string;
@@ -39,6 +41,41 @@ export type GrantRow = {
 };
 
 const USAGE_TYPES = ["video_embed", "newsletter", "social_post", "internal_reference"] as const;
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
+const MICRO_USDC = BigInt(1_000_000);
+const PERCENT_HELPERS = [
+  { percent: 25, label: "25%" },
+  { percent: 50, label: "50%" },
+  { percent: 75, label: "75%" },
+  { percent: 100, label: "100%" },
+] as const;
+
+function microToUsdcInput(value: bigint): string {
+  const whole = value / MICRO_USDC;
+  const fraction = (value % MICRO_USDC).toString().padStart(6, "0").replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole.toString();
+}
+
+function percentOfMicroUsdc(value: bigint, percent: number): string {
+  return microToUsdcInput((value * BigInt(percent)) / BigInt(100));
+}
+
+function parseMicroUsdcString(value: unknown): bigint | null {
+  if (typeof value !== "string" || !/^\d+$/.test(value)) return null;
+  return BigInt(value);
+}
+
+async function fetchGatewayAvailableMicroUsdc(address: string): Promise<bigint> {
+  const res = await fetch(
+    `/api/payments/gateway/balances?address=${encodeURIComponent(address)}`,
+    { credentials: "same-origin" },
+  );
+  const body = (await res.json()) as { availableMicroUsdc?: string };
+  if (!res.ok) throw new Error("gateway_balance_unavailable");
+  const micro = parseMicroUsdcString(body.availableMicroUsdc);
+  if (micro == null) throw new Error("gateway_balance_unavailable");
+  return micro;
+}
 
 function CopyButton({ value, className }: { value: string; className?: string }) {
   const [copied, setCopied] = useState(false);
@@ -80,6 +117,43 @@ function SectionHeader({ title, desc }: { title: string; desc: string }) {
   );
 }
 
+function CollapsibleRows({
+  label,
+  count,
+  defaultOpen = false,
+  children,
+}: {
+  label: string;
+  count: number;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  if (count === 0) return null;
+
+  return (
+    <div className="mt-4">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors hover:bg-secondary/30"
+      >
+        <span className="text-[0.7rem] uppercase tracking-[0.15em] text-muted-foreground">
+          {label} ({count})
+        </span>
+        <CaretDown
+          weight="bold"
+          className={cn(
+            "size-3.5 text-muted-foreground transition-transform",
+            open && "rotate-180",
+          )}
+        />
+      </button>
+      {open && <div className="mt-2 space-y-2">{children}</div>}
+    </div>
+  );
+}
+
 /* ── Readiness badge ────────────────────────────────────────────────────────── */
 
 function ReadinessBadge({
@@ -111,9 +185,8 @@ function ReadinessBadge({
         </p>
         {ready ? (
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Your agent can sign in, search, and use clips within your spending
-            caps. Fund the session key&apos;s Gateway balance on Arc before paying.
-            Findling does not hold those funds.
+            Agent spends your wallet&apos;s Gateway balance. Grants cap how much it
+            can use.
           </p>
         ) : (
           <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
@@ -200,7 +273,7 @@ function KeysSection({
     <div className="rounded-2xl border border-border bg-card p-5">
       <SectionHeader
         title="Agent keys"
-        desc="Create a key so your agent can use Findling's REST and MCP APIs. You see the key once, so store it securely."
+        desc="Issue a key for REST and MCP. Store it when shown."
       />
 
       <div className="flex gap-2">
@@ -256,10 +329,7 @@ function KeysSection({
       )}
 
       {active.length > 0 && (
-        <div className="mt-4 space-y-2">
-          <p className="text-[0.7rem] uppercase tracking-[0.15em] text-muted-foreground">
-            Active ({active.length})
-          </p>
+        <CollapsibleRows label="Active" count={active.length} defaultOpen={false}>
           {active.map((c) => (
             <div
               key={c.id}
@@ -290,7 +360,7 @@ function KeysSection({
               </button>
             </div>
           ))}
-        </div>
+        </CollapsibleRows>
       )}
 
       {revoked.length > 0 && (
@@ -319,14 +389,53 @@ const GRANT_DEFAULTS = {
 function GrantsSection({
   grants,
   setGrants,
+  walletAddress,
 }: {
   grants: GrantRow[];
   setGrants: React.Dispatch<React.SetStateAction<GrantRow[]>>;
+  walletAddress?: string | null;
 }) {
   const [form, setForm] = useState(GRANT_DEFAULTS);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [gatewayBalance, setGatewayBalance] = useState<bigint | null>(null);
+  const [gatewayBalanceRefresh, setGatewayBalanceRefresh] = useState(0);
+  const sessionWalletAddress = form.sessionKeyAddress.trim();
+  const gatewayBalanceAddress = ADDRESS_RE.test(sessionWalletAddress)
+    ? sessionWalletAddress
+    : walletAddress;
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      await Promise.resolve();
+      if (!alive) return;
+      if (!gatewayBalanceAddress) {
+        setGatewayBalance(null);
+        return;
+      }
+      try {
+        const balance = await fetchGatewayAvailableMicroUsdc(gatewayBalanceAddress);
+        if (alive) setGatewayBalance(balance);
+      } catch {
+        if (alive) setGatewayBalance(null);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [gatewayBalanceAddress, gatewayBalanceRefresh]);
+
+  useEffect(() => {
+    function refreshGatewayBalance() {
+      setGatewayBalanceRefresh((n) => n + 1);
+    }
+    window.addEventListener(GATEWAY_BALANCE_UPDATED_EVENT, refreshGatewayBalance);
+    return () => {
+      window.removeEventListener(GATEWAY_BALANCE_UPDATED_EVENT, refreshGatewayBalance);
+    };
+  }, []);
 
   function toggleUsage(u: string) {
     setForm((f) => ({
@@ -400,12 +509,12 @@ function GrantsSection({
     <div className="rounded-2xl border border-border bg-card p-5">
       <SectionHeader
         title="Spending grants"
-        desc="A grant lets your agent pay for clips from a funded wallet within your caps. Fund the session key's Gateway balance on Arc before paying. Findling does not hold funds."
+        desc="Agent spends the session wallet's Gateway balance. Set the most it can use."
       />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className={labelCls}>Session key address (funded wallet)*</label>
+          <label className={labelCls}>Session wallet address*</label>
           <input
             type="text"
             placeholder="0x..."
@@ -425,6 +534,28 @@ function GrantsSection({
             onChange={(e) => setForm((f) => ({ ...f, totalCapUsdc: e.target.value }))}
             className={inputCls}
           />
+          {gatewayBalance != null && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <span className="text-[0.65rem] text-muted-foreground">
+                From Gateway balance:
+              </span>
+              {PERCENT_HELPERS.map(({ percent, label }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      totalCapUsdc: percentOfMicroUsdc(gatewayBalance, percent),
+                    }))
+                  }
+                  className="rounded-full bg-secondary px-2 py-0.5 text-[0.65rem] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <label className={labelCls}>Per-clip cap (USDC, optional)</label>
@@ -495,10 +626,7 @@ function GrantsSection({
       </div>
 
       {active.length > 0 && (
-        <div className="mt-4 space-y-2">
-          <p className="text-[0.7rem] uppercase tracking-[0.15em] text-muted-foreground">
-            Active ({active.length})
-          </p>
+        <CollapsibleRows label="Active" count={active.length} defaultOpen={false}>
           {active.map((g) => (
             <div
               key={g.id}
@@ -537,7 +665,7 @@ function GrantsSection({
               )}
             </div>
           ))}
-        </div>
+        </CollapsibleRows>
       )}
 
       {inactive.length > 0 && (
@@ -652,7 +780,7 @@ function ConnectSection({ origin }: { origin: string }) {
       <div className="mb-4 flex items-start justify-between gap-3">
         <SectionHeader
           title="Connect your agent"
-          desc="One key works in every client. Findling hosts the MCP server, so there is nothing to run locally. Add it to your AI client so it can search, use clips, curate, and withdraw."
+          desc="Add Findling to your AI client. Nothing runs locally."
         />
         <span className="mt-1 shrink-0 rounded-full bg-sage/15 px-2 py-0.5 text-[0.6rem] uppercase tracking-wider text-sage">
           hosted MCP
@@ -743,10 +871,12 @@ export function AgentsPanel({
   initialCreds,
   initialGrants,
   initialOrigin,
+  walletAddress,
 }: {
   initialCreds: CredRow[];
   initialGrants: GrantRow[];
   initialOrigin: string;
+  walletAddress?: string | null;
 }) {
   const [creds, setCreds] = useState(initialCreds);
   const [grants, setGrants] = useState(initialGrants);
@@ -759,7 +889,7 @@ export function AgentsPanel({
       <div className="space-y-4">
         <ReadinessBadge hasActiveKey={hasActiveKey} hasActiveGrant={hasActiveGrant} />
         <KeysSection creds={creds} setCreds={setCreds} />
-        <GrantsSection grants={grants} setGrants={setGrants} />
+        <GrantsSection grants={grants} setGrants={setGrants} walletAddress={walletAddress} />
       </div>
       <div className="lg:sticky lg:top-6">
         <ConnectSection origin={initialOrigin} />

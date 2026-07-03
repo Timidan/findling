@@ -30,7 +30,7 @@ describe("plain language product copy", () => {
       "If this clip is yours, claim the request, upload your version, and get paid when it is used.",
     );
     expect(source("src/app/studio/agents/page.tsx")).toContain(
-      "Give an agent a key so it can search, pay for clips, unlock them, and keep receipts.",
+      "Create a key, set a spending limit, then connect your agent.",
     );
   });
 
@@ -82,5 +82,26 @@ describe("plain language product copy", () => {
     expect(panel).toContain("Agent skill file");
     expect(panel).toContain("CopyButton value={skillUrl}");
     expect(panel).not.toContain("<details");
+  });
+
+  it("keeps agent lists compact and explains Gateway-funded spending", () => {
+    const panel = source("src/components/studio/agents-panel.tsx");
+
+    expect(panel).toContain("Agent spends the session wallet's Gateway balance.");
+    expect(panel).toContain("CollapsibleRows");
+    expect(panel).toContain("defaultOpen={false}");
+    expect(panel).toContain("25%");
+    expect(panel).toContain("50%");
+    expect(panel).toContain("75%");
+    expect(panel).toContain("100%");
+  });
+
+  it("lets Studio users deposit to Gateway from the balance pill", () => {
+    const balance = source("src/components/studio/studio-gateway-balance.tsx");
+
+    expect(balance).toContain("Deposit");
+    expect(balance).toContain("depositGatewayUsdc");
+    expect(balance).toContain("Get Arc Testnet USDC");
+    expect(balance).toContain("fixed inset-0");
   });
 });
