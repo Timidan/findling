@@ -132,7 +132,7 @@ export function ImportCta({ size = "lg" }: { size?: "lg" | "sm" }) {
   return (
     <>
       <Link
-        href="/api/creator/youtube/connect"
+        href="/studio/youtube"
         className={`inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card font-medium transition-colors hover:bg-secondary/60 ${pad}`}
       >
         <YoutubeLogo weight="fill" className="size-4 text-sage" />
@@ -164,11 +164,11 @@ export function StudioEmpty() {
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
         <Link
-          href="/api/creator/youtube/connect"
+          href="/studio/youtube"
           className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary/60"
         >
           <YoutubeLogo weight="fill" className="size-4 text-sage" />
-          Connect YouTube
+          Import from YouTube
         </Link>
         <Link
           href="/studio/upload"

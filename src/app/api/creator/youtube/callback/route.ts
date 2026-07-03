@@ -12,6 +12,17 @@ import { tokenCipher } from "@/server/crypto/token-crypto";
 
 export const runtime = "nodejs";
 
+function appOrigin(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL ?? "https://findling.timidan.xyz")
+    .replace(/\/+$/, "");
+}
+
+function studioYoutubeRedirect(status: string): URL {
+  const redirect = new URL("/studio/youtube", appOrigin());
+  redirect.searchParams.set("youtube", status);
+  return redirect;
+}
+
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
@@ -19,10 +30,9 @@ export async function GET(req: NextRequest) {
     url.searchParams.get("state"),
     req.cookies.get(YOUTUBE_OAUTH_STATE_COOKIE)?.value,
   );
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://findling.timidan.xyz";
 
   if (!code || !state) {
-    const res = NextResponse.redirect(`${appUrl}/?youtube=error`);
+    const res = NextResponse.redirect(studioYoutubeRedirect("error"));
     res.cookies.delete(YOUTUBE_OAUTH_STATE_COOKIE);
     return res;
   }
@@ -45,11 +55,11 @@ export async function GET(req: NextRequest) {
       })
       .where(eq(users.id, state.userId));
 
-    const res = NextResponse.redirect(`${appUrl}/?youtube=connected`);
+    const res = NextResponse.redirect(studioYoutubeRedirect("connected"));
     res.cookies.delete(YOUTUBE_OAUTH_STATE_COOKIE);
     return res;
   } catch {
-    const res = NextResponse.redirect(`${appUrl}/?youtube=error`);
+    const res = NextResponse.redirect(studioYoutubeRedirect("error"));
     res.cookies.delete(YOUTUBE_OAUTH_STATE_COOKIE);
     return res;
   }

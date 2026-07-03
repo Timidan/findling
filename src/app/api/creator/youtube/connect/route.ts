@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { eq } from "drizzle-orm";
 import { requireUserId } from "@/server/auth/current-user";
 import { isSameOrigin } from "@/server/auth/csrf";
+import { db } from "@/server/db/client";
+import { users } from "@/server/db/schema";
 import {
   buildAuthUrl,
   issueYoutubeOAuthState,
@@ -35,6 +38,12 @@ function publicOrigin(req: NextRequest): string {
   return `${proto}://${host}`;
 }
 
+function studioYoutubeUrl(req: NextRequest, status: string): URL {
+  const url = new URL("/studio/youtube", publicOrigin(req));
+  url.searchParams.set("youtube", status);
+  return url;
+}
+
 export async function GET(req: NextRequest) {
   if (!isSameOrigin(req)) {
     return NextResponse.json({ error: "bad_origin" }, { status: 403 });
@@ -48,6 +57,20 @@ export async function GET(req: NextRequest) {
     // Send the user to a real page (which shows the connect gate) instead of a
     // dead end.
     return NextResponse.redirect(new URL("/studio/settings", publicOrigin(req)));
+  }
+  const forceReconnect = req.nextUrl.searchParams.get("force") === "1";
+  if (!forceReconnect) {
+    const user = (
+      await db
+        .select({
+          youtubeRefreshTokenCiphertext: users.youtubeRefreshTokenCiphertext,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+    )[0];
+    if (user?.youtubeRefreshTokenCiphertext) {
+      return NextResponse.redirect(studioYoutubeUrl(req, "already_connected"));
+    }
   }
   const state = issueYoutubeOAuthState(userId);
   const res = NextResponse.redirect(buildAuthUrl(state));
