@@ -76,6 +76,11 @@ export function LicenseCheckout({
   const [error, setError] = useState<string | null>(null);
   const [funded, setFunded] = useState(false);
   const [result, setResult] = useState<UnlockResponse | null>(null);
+  // Auth state, seeded from the server and kept in sync by the ConnectWallet
+  // button below (its onAuthChange). This drives ONE state-aware CTA instead of
+  // three competing full-width buttons: connect first, then pay.
+  const [me, setMe] = useState<Me | undefined>(initialUser);
+  const signedIn = !!me?.address;
 
   async function fund() {
     setBusy("fund");
@@ -194,40 +199,66 @@ export function LicenseCheckout({
         Pay once to use this clip in your project. The creator gets paid, and your receipt shows what you unlocked.
       </p>
 
-      <div className="mt-4">
-        <ConnectWallet initialUser={initialUser} className="w-full justify-center" />
-      </div>
+      {signedIn ? (
+        <>
+          {/* Connected: the wallet demotes to a compact status row, and paying is
+              the single primary action. */}
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <span className="text-xs text-muted-foreground">Paying from</span>
+            <ConnectWallet initialUser={me} onAuthChange={setMe} />
+          </div>
 
-      <button
-        type="button"
-        onClick={license}
-        disabled={busy !== null}
-        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
-      >
-        {busy === "license" && <CircleNotch weight="bold" className="size-4 animate-spin" />}
-        {busy === "license" ? "Confirming in wallet..." : "Use this clip"}
-      </button>
+          <button
+            type="button"
+            onClick={license}
+            disabled={busy !== null}
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+          >
+            {busy === "license" && <CircleNotch weight="bold" className="size-4 animate-spin" />}
+            {busy === "license" ? "Confirming in wallet..." : "Use this clip"}
+          </button>
 
-      <button
-        type="button"
-        onClick={fund}
-        disabled={busy !== null}
-        className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-      >
-        {busy === "fund" ? (
-          <CircleNotch weight="bold" className="size-3.5 animate-spin" />
-        ) : (
-          <Coins weight="bold" className="size-3.5 text-sage" />
-        )}
-        {funded ? "Gateway funded. Add more USDC" : "Set up payments"}
-      </button>
+          <button
+            type="button"
+            onClick={fund}
+            disabled={busy !== null}
+            className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+          >
+            {busy === "fund" ? (
+              <CircleNotch weight="bold" className="size-3.5 animate-spin" />
+            ) : (
+              <Coins weight="bold" className="size-3.5 text-sage" />
+            )}
+            {funded ? "Gateway funded. Add more USDC" : "First time? Set up payments"}
+          </button>
 
-      {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
+          {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 
-      <p className="mt-4 text-[0.7rem] leading-relaxed text-muted-foreground">
-        First time? Add USDC to Circle Gateway once. Your wallet signs each payment
-        directly. Findling never holds your funds.
-      </p>
+          <p className="mt-4 text-[0.7rem] leading-relaxed text-muted-foreground">
+            Your wallet signs each payment directly. Findling never holds your funds.
+          </p>
+        </>
+      ) : (
+        <>
+          {/* Signed out: a single primary CTA. Paying isn't possible yet, so we
+              don't show a dead "Use this clip" button that only 401s. */}
+          <div className="mt-4">
+            <ConnectWallet
+              initialUser={me ?? null}
+              onAuthChange={setMe}
+              className="w-full justify-center"
+            />
+          </div>
+
+          {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
+
+          <p className="mt-3 text-[0.7rem] leading-relaxed text-muted-foreground">
+            Connect your wallet to use this clip. First-time buyers add USDC to
+            Circle Gateway once. Your wallet signs each payment directly, and
+            Findling never holds your funds.
+          </p>
+        </>
+      )}
     </div>
   );
 }

@@ -51,6 +51,7 @@ next-env.d.ts
 
 # local-only hackathon brief — invite passphrase + internal status, never push
 HACKATHON.md
+DEMO-SCRIPT.md
 
 # third-party hackathon Discord export / scratch — not part of the product
 chats.txt

@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft, Wallet } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 import { getCurrentUserId } from "@/server/auth/current-user";
 import { UploadForm } from "@/components/studio/upload-form";
+import { StudioAuthGate } from "@/components/studio/studio-auth-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -10,15 +11,7 @@ export default async function UploadPage() {
   const id = await getCurrentUserId();
 
   if (!id) {
-    return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-5 py-24 text-center">
-        <Wallet weight="duotone" className="size-9 text-sage" />
-        <h1 className="font-display text-3xl tracking-tight">Connect your wallet</h1>
-        <p className="text-sm text-muted-foreground">
-          Sign in with your wallet to upload a clip.
-        </p>
-      </div>
-    );
+    return <StudioAuthGate message="Sign in with your wallet to upload a clip." />;
   }
 
   return (

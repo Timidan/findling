@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { EIP1193Provider } from "viem";
 import { Wallet, SignOut, CircleNotch, ArrowSquareOut, X } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,7 @@ function mobileWalletLinks(url: string): WalletLink[] {
 export function ConnectWallet({
   className,
   initialUser,
+  onAuthChange,
 }: {
   className?: string;
   /** Server-seeded session user so the button hydrates already-connected — no
@@ -58,7 +60,12 @@ export function ConnectWallet({
    *  (the landing): there it resolves client-side and shows a neutral placeholder
    *  until known, never a false "Connect wallet". */
   initialUser?: Me;
+  /** Fires whenever the resolved auth state changes (null = logged out, a user =
+   *  connected). Lets a parent — e.g. the license checkout — drive a single
+   *  state-aware CTA off the same source of truth instead of a second /me fetch. */
+  onAuthChange?: (me: Me) => void;
 }) {
+  const router = useRouter();
   // `undefined` = not yet known; `null` = known-logged-out; a user = connected.
   const [me, setMe] = useState<Me | undefined>(initialUser);
   const [busy, setBusy] = useState(false);
@@ -66,6 +73,18 @@ export function ConnectWallet({
   const [walletHelpOpen, setWalletHelpOpen] = useState(false);
   const [walletLinks, setWalletLinks] = useState<WalletLink[]>([]);
   const errorId = useId();
+
+  // Notify the parent when the RESOLVED auth state changes (skip the unknown
+  // `undefined`). The callback is held in a ref — updated in its own effect, not
+  // during render — so a parent passing a fresh callback identity each render
+  // doesn't re-fire the state-change effect below.
+  const onAuthChangeRef = useRef(onAuthChange);
+  useEffect(() => {
+    onAuthChangeRef.current = onAuthChange;
+  });
+  useEffect(() => {
+    if (me !== undefined) onAuthChangeRef.current?.(me);
+  }, [me]);
   // Bumped on every sign-in / sign-out. A slow mount revalidation captures the
   // value at fire time and only applies if it hasn't changed since — so a stale
   // /api/auth/me can't overwrite a newer, user-initiated auth state.
@@ -141,13 +160,16 @@ export function ConnectWallet({
       if (!res.ok) throw new Error("verification failed");
       const me = await fetch("/api/auth/me").then((r) => r.json());
       setMe(me.user ?? null);
+      // Re-render server components with the new session so gated pages (studio,
+      // checkout) reveal their signed-in state without a manual refresh.
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "sign-in failed");
       setWalletHelpOpen(true);
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [router]);
 
   const signOut = useCallback(async () => {
     gen.current += 1; // supersede any in-flight revalidation
@@ -155,10 +177,13 @@ export function ConnectWallet({
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       setMe(null);
+      // Re-render server components so gated pages fall back to their signed-out
+      // state (never leave stale private data on screen after sign-out).
+      router.refresh();
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [router]);
 
   if (me === undefined) {
     // Unknown — a neutral pill matching the button's footprint (no layout shift,

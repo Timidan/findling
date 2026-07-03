@@ -1,11 +1,11 @@
 import { desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
-import { Robot } from "@phosphor-icons/react/dist/ssr";
 import { getCurrentUserId } from "@/server/auth/current-user";
 import { listGrants, grantView } from "@/server/grants/grants";
 import { db } from "@/server/db/client";
 import { agentCredentials } from "@/server/db/schema";
 import { AgentsPanel, type CredRow, type GrantRow } from "@/components/studio/agents-panel";
+import { StudioAuthGate } from "@/components/studio/studio-auth-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +19,7 @@ export default async function AgentsPage() {
 
   if (!userId) {
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-5 py-24 text-center">
-        <Robot weight="duotone" className="size-9 text-sage" />
-        <h1 className="font-display text-3xl tracking-tight">Connect your wallet</h1>
-        <p className="text-sm text-muted-foreground">
-          Sign in with your wallet to configure agent access.
-        </p>
-      </div>
+      <StudioAuthGate message="Sign in with your wallet to configure agent access." />
     );
   }
 

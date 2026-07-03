@@ -16,6 +16,7 @@ import { AddressLink } from "@/components/brand/onchain";
 import { NetworkBadge } from "@/components/brand/network-badge";
 import { WithdrawButton } from "@/components/earnings/withdraw-button";
 import { TransactionLedgerView } from "@/components/studio/transaction-ledger";
+import { StudioAuthGate } from "@/components/studio/studio-auth-gate";
 import { formatMicroUsdc } from "@/lib/format";
 
 export const dynamic = "force-dynamic"; // live ledger + signed actions
@@ -27,15 +28,7 @@ export default async function PayoutsPage() {
 
   if (!identity) {
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-5 py-24 text-center">
-        <Wallet weight="duotone" className="size-9 text-sage" />
-        <h1 className="font-display text-3xl tracking-tight">
-          Connect your wallet
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Sign in with your wallet to view and withdraw your balance.
-        </p>
-      </div>
+      <StudioAuthGate message="Sign in with your wallet to view and withdraw your balance." />
     );
   }
 

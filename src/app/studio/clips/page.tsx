@@ -7,12 +7,23 @@ import {
   ImportCta,
   StudioEmpty,
 } from "@/components/studio/moment-card";
+import { StudioAuthGate } from "@/components/studio/studio-auth-gate";
 
 export const dynamic = "force-dynamic"; // signed URLs + live catalog
 
 export default async function ClipsPage() {
   const sessionId = await getCurrentUserId();
-  const data = sessionId ? await getStudioData(sessionId, false) : null;
+
+  // Clips are the creator's own drafts + published moments — private. Logged out,
+  // gate like every other studio page (never show an empty "Your clips" shell with
+  // creation CTAs that can't succeed without a session).
+  if (!sessionId) {
+    return (
+      <StudioAuthGate message="Sign in with your wallet to manage your clips." />
+    );
+  }
+
+  const data = await getStudioData(sessionId, false);
   const moments = data?.moments ?? [];
 
   return (

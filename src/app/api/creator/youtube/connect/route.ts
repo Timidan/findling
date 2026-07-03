@@ -18,7 +18,11 @@ export async function GET(req: NextRequest) {
   try {
     userId = await requireUserId();
   } catch {
-    return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+    // This endpoint is reached by a top-level browser navigation (a link/button),
+    // so a signed-out or expired session must NOT dump raw JSON onto a blank page.
+    // Send the user to a real page (which shows the connect gate) instead of a
+    // dead end.
+    return NextResponse.redirect(new URL("/studio/settings", req.url));
   }
   const state = issueYoutubeOAuthState(userId);
   const res = NextResponse.redirect(buildAuthUrl(state));

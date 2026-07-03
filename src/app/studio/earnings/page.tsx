@@ -17,6 +17,7 @@ import { UsdcIcon } from "@/components/brand/usdc";
 import { AddressLink } from "@/components/brand/onchain";
 import { NetworkBadge } from "@/components/brand/network-badge";
 import { RecentLicenses } from "@/components/studio/recent-licenses";
+import { StudioAuthGate } from "@/components/studio/studio-auth-gate";
 import { formatMicroUsdc } from "@/lib/format";
 
 export const dynamic = "force-dynamic"; // live ledger
@@ -28,15 +29,7 @@ export default async function EarningsPage() {
 
   if (!identity) {
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-5 py-24 text-center">
-        <Wallet weight="duotone" className="size-9 text-sage" />
-        <h1 className="font-display text-3xl tracking-tight">
-          Connect your wallet
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Sign in with your wallet to view USDC you have earned.
-        </p>
-      </div>
+      <StudioAuthGate message="Sign in with your wallet to view USDC you have earned." />
     );
   }
 

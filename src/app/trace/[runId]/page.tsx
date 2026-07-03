@@ -48,7 +48,31 @@ export default async function TracePage({
   const viewerId = initialUser?.id ?? null;
   if (runId === "latest") {
     const latest = await getLatestSettledRunId(viewerId);
-    if (!latest) notFound();
+    // The `/trace/latest` showcase is a public entry point — when no settled run
+    // exists yet, show a friendly empty state rather than a bare 404 dead end.
+    if (!latest) {
+      return (
+        <div className="dark min-h-[100dvh] bg-background text-foreground">
+          <SiteHeader active="/trace/latest" tag="agent trace" initialUser={initialUser} />
+          <main className="mx-auto grid max-w-2xl place-items-center px-5 py-24 text-center">
+            <MagicWand weight="duotone" className="size-10 text-muted-foreground" />
+            <h1 className="mt-4 font-display text-3xl tracking-tight">No agent traces yet</h1>
+            <p className="mt-2 max-w-md text-sm text-muted-foreground">
+              This is where an agent&rsquo;s decision shows up once one has run:
+              the request, candidates, scores, chosen clip, payment, and receipt.
+              Browse the catalog to see what agents can license.
+            </p>
+            <Link
+              href="/find"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98]"
+            >
+              Browse clips
+              <ArrowRight weight="bold" className="size-4" />
+            </Link>
+          </main>
+        </div>
+      );
+    }
     runId = latest;
   }
   if (!isUuid(runId)) notFound();

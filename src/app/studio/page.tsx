@@ -20,6 +20,7 @@ import {
   StudioEmpty,
 } from "@/components/studio/moment-card";
 import { RecentLicenses } from "@/components/studio/recent-licenses";
+import { ConnectWallet } from "@/components/auth/connect-wallet";
 
 export const dynamic = "force-dynamic"; // signed URLs + live catalog
 
@@ -174,9 +175,12 @@ function StudioSignedOut() {
         <h3 className="font-display text-2xl tracking-tight">Open your studio</h3>
         <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
           Connect your wallet to upload clips, set USDC prices, and track earnings.
-          Use the Connect wallet button in the sidebar.
         </p>
       </div>
+      {/* Inline CTA so the action sits with its prompt (no "use the sidebar"
+          pointer). ConnectWallet refreshes server components on connect, so the
+          studio fills in place. */}
+      <ConnectWallet initialUser={null} />
     </div>
   );
 }

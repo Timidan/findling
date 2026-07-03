@@ -9,6 +9,7 @@ import {
 import { getStudioIdentity } from "@/server/catalog/studio";
 import { getCurrentUserId } from "@/server/auth/current-user";
 import { PayoutWalletControl } from "@/components/auth/payout-wallet-control";
+import { StudioAuthGate } from "@/components/studio/studio-auth-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -19,15 +20,7 @@ export default async function SettingsPage() {
 
   if (!identity) {
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-5 py-24 text-center">
-        <Wallet weight="duotone" className="size-9 text-sage" />
-        <h1 className="font-display text-3xl tracking-tight">
-          Connect your wallet
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Sign in with your wallet to manage your account.
-        </p>
-      </div>
+      <StudioAuthGate message="Sign in with your wallet to manage your account." />
     );
   }
 
