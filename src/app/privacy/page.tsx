@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "How Findling handles account, Google and YouTube, upload, agent, and payment data.",
 };
 
-const CONTACT_EMAIL = "akinuntemitayodaniel@gmail.com";
+const CONTACT_EMAIL = "akinnusotutemitayodaniel@gmail.com";
 
 export default function PrivacyPage() {
   return (

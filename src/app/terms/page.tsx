@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "Rules for using Findling as a creator, finder, buyer, or agent.",
 };
 
-const CONTACT_EMAIL = "akinuntemitayodaniel@gmail.com";
+const CONTACT_EMAIL = "akinnusotutemitayodaniel@gmail.com";
 
 export default function TermsPage() {
   return (

@@ -116,12 +116,12 @@ describe("plain language product copy", () => {
     expect(privacy).toContain("Privacy Policy");
     expect(privacy).toContain("Google and YouTube");
     expect(privacy).toContain("We do not sell personal data.");
-    expect(privacy).toContain("akinuntemitayodaniel@gmail.com");
+    expect(privacy).toContain("akinnusotutemitayodaniel@gmail.com");
 
     expect(terms).toContain("Terms of Service");
     expect(terms).toContain("Use clips only after payment unlocks them.");
     expect(terms).toContain("Findling is not a bank.");
-    expect(terms).toContain("akinuntemitayodaniel@gmail.com");
+    expect(terms).toContain("akinnusotutemitayodaniel@gmail.com");
   });
 
   it("explains the app purpose on the public home page", () => {
