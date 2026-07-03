@@ -66,7 +66,7 @@ export default async function AgentsPage() {
   });
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:py-10">
+    <div className="mx-auto w-full max-w-6xl px-5 py-8 sm:py-10">
       <div>
         <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Studio</p>
         <h1 className="mt-2 font-display text-3xl leading-[1.05] tracking-tight sm:text-4xl">

@@ -589,6 +589,7 @@ type ClientId = (typeof CLIENT_TABS)[number]["id"];
 function ConnectSection({ origin }: { origin: string }) {
   const [client, setClient] = useState<ClientId>("cursor");
   const url = `${origin}/api/mcp`;
+  const skillUrl = `${origin}/skill.md`;
   const KEY = "Bearer <fdl_agent_...>"; // user pastes the key they issued above
 
   // Each client wants a structurally DIFFERENT config — a wrong shape silently
@@ -702,10 +703,10 @@ function ConnectSection({ origin }: { origin: string }) {
         ))}
       </p>
 
-      <details className="mt-4 border-t border-border pt-4">
-        <summary className="cursor-pointer text-[0.7rem] uppercase tracking-[0.15em] text-muted-foreground">
+      <div className="mt-4 border-t border-border pt-4">
+        <p className="text-[0.7rem] uppercase tracking-[0.15em] text-muted-foreground">
           Headless / REST
-        </summary>
+        </p>
         <div className="mt-2">
           <CodeBlock value={curl} />
           <p className="mt-1.5 text-xs text-muted-foreground">
@@ -713,17 +714,25 @@ function ConnectSection({ origin }: { origin: string }) {
             <code className="rounded bg-secondary px-1 py-0.5">/api/agent/*</code> REST routes.
           </p>
         </div>
-      </details>
+      </div>
 
-      <p className="mt-4 text-xs text-muted-foreground">
-        Full reference:{" "}
+      <div className="mt-4 border-t border-border pt-4">
+        <p className="text-[0.7rem] uppercase tracking-[0.15em] text-muted-foreground">
+          Agent skill file
+        </p>
+        <div className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
+          <code className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">
+            {skillUrl}
+          </code>
+          <CopyButton value={skillUrl} className="shrink-0" />
+        </div>
         <a
           href="/skill.md"
-          className="font-medium text-foreground underline-offset-4 hover:underline"
+          className="mt-2 inline-flex text-xs font-medium text-foreground underline-offset-4 hover:underline"
         >
-          /skill.md →
+          Open /skill.md →
         </a>
-      </p>
+      </div>
     </div>
   );
 }
@@ -746,11 +755,15 @@ export function AgentsPanel({
   const hasActiveGrant = grants.some((g) => g.status === "active");
 
   return (
-    <div className="space-y-4">
-      <ReadinessBadge hasActiveKey={hasActiveKey} hasActiveGrant={hasActiveGrant} />
-      <KeysSection creds={creds} setCreds={setCreds} />
-      <GrantsSection grants={grants} setGrants={setGrants} />
-      <ConnectSection origin={initialOrigin} />
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)] lg:items-start">
+      <div className="space-y-4">
+        <ReadinessBadge hasActiveKey={hasActiveKey} hasActiveGrant={hasActiveGrant} />
+        <KeysSection creds={creds} setCreds={setCreds} />
+        <GrantsSection grants={grants} setGrants={setGrants} />
+      </div>
+      <div className="lg:sticky lg:top-6">
+        <ConnectSection origin={initialOrigin} />
+      </div>
     </div>
   );
 }

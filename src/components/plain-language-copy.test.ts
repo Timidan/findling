@@ -65,4 +65,22 @@ describe("plain language product copy", () => {
     expect(checkout).not.toContain("Your Gateway USDC balance looks too low");
     expect(checkout).not.toContain("First time? Set up payments");
   });
+
+  it("shows the Gateway balance beside the Studio wallet identity", () => {
+    const sidebar = source("src/components/studio/studio-sidebar.tsx");
+
+    expect(sidebar).toContain("StudioGatewayBalance");
+    expect(sidebar).toContain("initialUser?.address");
+  });
+
+  it("keeps agent setup side-by-side with a visible skill file copy action", () => {
+    const page = source("src/app/studio/agents/page.tsx");
+    const panel = source("src/components/studio/agents-panel.tsx");
+
+    expect(page).toContain("max-w-6xl");
+    expect(panel).toContain("lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)]");
+    expect(panel).toContain("Agent skill file");
+    expect(panel).toContain("CopyButton value={skillUrl}");
+    expect(panel).not.toContain("<details");
+  });
 });
