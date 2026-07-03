@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   completeUpload: vi.fn(),
   createUploadDerivatives: vi.fn(),
   markUploadIntentCompleted: vi.fn(),
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
   removeObject: vi.fn(),
   getObjectInfo: vi.fn(),
   readObjectHead: vi.fn(),
@@ -25,7 +27,8 @@ vi.mock("@/server/ratelimit/rate-limit", () => ({
 }));
 
 vi.mock("next/cache", () => ({
-  revalidateTag: vi.fn(),
+  revalidatePath: mocks.revalidatePath,
+  revalidateTag: mocks.revalidateTag,
 }));
 
 vi.mock("@/server/uploads/upload-intent", () => ({
@@ -98,6 +101,9 @@ describe("POST /api/creator/uploads/complete", () => {
         previewStorageKey: "previews/user-1/preview.mp4",
       }),
     );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/studio");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/studio/clips");
+    expect(mocks.revalidateTag).toHaveBeenCalledWith("studio-catalog", "max");
   });
 
   it("cleans generated derivatives if finalization fails", async () => {

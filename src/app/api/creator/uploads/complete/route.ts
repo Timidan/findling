@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireUserId } from "@/server/auth/current-user";
 import { isSameOrigin } from "@/server/auth/csrf";
 import { enforceRateLimit } from "@/server/ratelimit/rate-limit";
@@ -210,7 +210,11 @@ export async function POST(req: NextRequest) {
       console.error("[uploads/complete] markUploadIntentCompleted failed:", e);
     }
 
-    // the studio catalog (cached, tag "studio-catalog") now has a new draft moment
+    // The creator expects to see this draft on the next Studio/Clips visit.
+    // `revalidateTag(..., "max")` may serve stale once, so also invalidate the
+    // concrete Studio pages for read-your-own-writes after uploads.
+    revalidatePath("/studio");
+    revalidatePath("/studio/clips");
     revalidateTag("studio-catalog", "max");
 
     return NextResponse.json({

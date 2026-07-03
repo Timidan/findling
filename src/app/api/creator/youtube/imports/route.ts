@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { eq } from "drizzle-orm";
 import { requireUserId } from "@/server/auth/current-user";
 import { db } from "@/server/db/client";
@@ -201,6 +201,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    revalidatePath("/studio");
+    revalidatePath("/studio/clips");
     revalidateTag("studio-catalog", "max");
 
     return NextResponse.json({
