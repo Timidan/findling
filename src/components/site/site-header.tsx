@@ -1,23 +1,30 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { FindlingLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { ConnectWallet, type Me } from "@/components/auth/connect-wallet";
 
 /**
- * Shared site chrome for the non-cinematic surfaces (the receipt, the trace
- * stage). The creator studio has its own sidebar shell, so it does not use this.
- *
- * Fully token-driven, so it follows the app-wide light/dark theme automatically;
- * it also carries the ThemeToggle. On the always-dark trace stage it simply
- * resolves against the cinema palette via that surface's local `.dark` wrapper.
+ * Shared site chrome. The wallet button resolves auth state client-side, and
+ * the top-level nav hides the public agent onboarding link once a user is signed
+ * in.
  */
 
-const NAV: { href: string; label: string }[] = [
-  { href: "/find", label: "Find" },
+const NAV: { href: string; label: string; signedOutOnly?: boolean }[] = [
   { href: "/studio", label: "Studio" },
-  { href: "/studio/earnings", label: "Earnings" },
+  { href: "/wanted", label: "Wanted" },
+  { href: "/agents", label: "For agents", signedOutOnly: true },
 ];
+
+function isActiveHref(pathname: string, active: string | undefined, href: string) {
+  if (active === href) return true;
+  if (href === "/wanted") return pathname === "/wanted" || active === "/wanted";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function SiteHeader({
   active,
@@ -33,6 +40,11 @@ export function SiteHeader({
    *  hydrates already-connected; omitted by the loading skeletons. */
   initialUser?: Me;
 }) {
+  const pathname = usePathname();
+  const [me, setMe] = useState<Me | undefined>(initialUser);
+  const walletKey =
+    me?.id ?? me?.address ?? initialUser?.id ?? initialUser?.address ?? "signed-out";
+
   return (
     <header
       className={cn(
@@ -52,7 +64,8 @@ export function SiteHeader({
           aria-label="Primary"
         >
           {NAV.map((item) => {
-            const isActive = active === item.href;
+            if (item.signedOutOnly && me !== null) return null;
+            const isActive = isActiveHref(pathname, active, item.href);
             return (
               <Link
                 key={item.href}
@@ -73,8 +86,9 @@ export function SiteHeader({
 
         <div className="flex shrink-0 items-center gap-2">
           <ConnectWallet
-            key={initialUser?.id ?? initialUser?.address ?? "signed-out"}
-            initialUser={initialUser}
+            key={walletKey}
+            initialUser={me}
+            onAuthChange={setMe}
             compactOnMobile
           />
           <ThemeToggle />

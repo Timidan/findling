@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { FindlingLogo } from "@/components/brand/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { ConnectWallet, type Me } from "@/components/auth/connect-wallet";
+import type { Me } from "@/components/auth/connect-wallet";
 import { StudioGatewayBalance } from "@/components/studio/studio-gateway-balance";
 
 /**
@@ -55,9 +54,7 @@ export function StudioSidebar({
 }) {
   const isActive = useActive();
   const initial = creatorName.charAt(0).toUpperCase();
-  const [me, setMe] = useState<Me | undefined>(initialUser);
-  const walletAddress = me?.address ?? initialUser?.address ?? null;
-  const walletKey = me?.id ?? me?.address ?? initialUser?.id ?? initialUser?.address ?? "signed-out";
+  const walletAddress = initialUser?.address ?? null;
 
   return (
     <>
@@ -111,41 +108,12 @@ export function StudioSidebar({
               )}
             </div>
           </div>
-          <div className="mt-2">
-            <ConnectWallet
-              key={walletKey}
-              className="w-full justify-center"
-              initialUser={me}
-              onAuthChange={setMe}
-            />
-          </div>
           <StudioGatewayBalance address={walletAddress} className="mt-2" />
           <div className="mt-1 flex items-center justify-end">
             <ThemeToggle />
           </div>
         </div>
       </aside>
-
-      {/* Mobile top bar — brand + wallet (so auth-only studio isn't dead-ended on phones) */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-md lg:hidden">
-        <Link href="/" aria-label="Findling home" className="shrink-0">
-          <FindlingLogo size="1.45rem" wordClassName="hidden text-xl min-[360px]:inline" />
-        </Link>
-        <div className="flex min-w-0 items-center gap-2">
-          <StudioGatewayBalance
-            address={walletAddress}
-            compact
-            className="hidden max-w-[8.5rem] min-[430px]:flex"
-          />
-          <ConnectWallet
-            key={walletKey}
-            initialUser={me}
-            onAuthChange={setMe}
-            compactOnMobile
-          />
-          <ThemeToggle className="shrink-0" />
-        </div>
-      </header>
 
       {/* Mobile bottom tab bar — all destinations, always reachable, no clipping */}
       <nav

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Fraunces } from "next/font/google";
 import gsap from "gsap";
@@ -27,7 +27,7 @@ import {
 import { UsdcIcon } from "@/components/brand/usdc";
 import { FindlingLogo } from "@/components/brand/logo";
 import { PoweredBy, X402Mark, ArcMark } from "@/components/brand/tech-logos";
-import { ConnectWallet } from "@/components/auth/connect-wallet";
+import { ConnectWallet, type Me } from "@/components/auth/connect-wallet";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -157,6 +157,7 @@ export function LandingX({
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion() === true;
+  const [me, setMe] = useState<Me | undefined>();
 
   useLandingMotion(rootRef, reduceMotion, priceMicroUsdc, split);
 
@@ -164,7 +165,7 @@ export function LandingX({
     <div ref={rootRef} className={`${display.variable} dark relative overflow-x-clip bg-background text-foreground`}>
       <FixedBackdrop />
       <main className="relative z-10">
-        <LandingHeader />
+        <LandingHeader me={me} onAuthChange={setMe} />
         <Hero />
         <PurposeSection />
         {reduceMotion ? (
@@ -173,7 +174,7 @@ export function LandingX({
           <MomentStory priceMicroUsdc={priceMicroUsdc} split={split} />
         )}
         <Proof stats={stats} />
-        <FooterCTA />
+        <FooterCTA me={me} />
       </main>
     </div>
   );
@@ -575,7 +576,14 @@ function FixedBackdrop() {
   );
 }
 
-function LandingHeader() {
+function LandingHeader({
+  me,
+  onAuthChange,
+}: {
+  me: Me | undefined;
+  onAuthChange: (me: Me) => void;
+}) {
+  const walletKey = me?.id ?? me?.address ?? "signed-out";
   return (
     <header className="absolute inset-x-0 top-0 z-30 flex items-center justify-between gap-3 px-5 py-5 md:px-12">
       <Link
@@ -602,13 +610,19 @@ function LandingHeader() {
         >
           Wanted
         </Link>
-        <Link
-          href="/agents"
-          className="hidden rounded-full px-3 py-1.5 text-sm text-white/70 transition-colors hover:text-white md:inline"
-        >
-          For agents
-        </Link>
-        <ConnectWallet />
+        {me === null && (
+          <Link
+            href="/agents"
+            className="hidden rounded-full px-3 py-1.5 text-sm text-white/70 transition-colors hover:text-white md:inline"
+          >
+            For agents
+          </Link>
+        )}
+        <ConnectWallet
+          key={walletKey}
+          initialUser={me}
+          onAuthChange={onAuthChange}
+        />
       </nav>
     </header>
   );
@@ -1244,7 +1258,7 @@ function Stat({ label, value, usdc }: { label: string; value: string; usdc?: boo
   );
 }
 
-function FooterCTA() {
+function FooterCTA({ me }: { me: Me | undefined }) {
   return (
     <section className="cx-reveal px-5 pb-28 pt-8 md:px-12">
       <div className="mx-auto max-w-6xl">
@@ -1269,7 +1283,9 @@ function FooterCTA() {
               <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/55">
                 <Link href="/studio" className="transition-colors hover:text-white">Studio</Link>
                 <Link href="/wanted" className="transition-colors hover:text-white">Wanted</Link>
-                <Link href="/agents" className="transition-colors hover:text-white">For agents</Link>
+                {me === null && (
+                  <Link href="/agents" className="transition-colors hover:text-white">For agents</Link>
+                )}
                 <Link href="/privacy" className="transition-colors hover:text-white">Privacy</Link>
                 <Link href="/terms" className="transition-colors hover:text-white">Terms</Link>
               </div>
