@@ -11,7 +11,7 @@ import { getSessionUser } from "@/server/auth/current-user";
 import { SiteHeader } from "@/components/site/site-header";
 import { UsdcAmount, UsdcIcon } from "@/components/brand/usdc";
 import { formatDateTime, formatMicroUsdc } from "@/lib/format";
-import { arcAddressUrl } from "@/lib/explorer";
+import { arcAddressUrl, arcTxUrl } from "@/lib/explorer";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +35,10 @@ function shortAddr(a: string | null): string {
   return a.length > 14 ? `${a.slice(0, 6)}...${a.slice(-4)}` : a;
 }
 
+function isTxHash(value: string): boolean {
+  return /^0x[a-fA-F0-9]{64}$/.test(value);
+}
+
 export default async function ReceiptPage({
   params,
 }: {
@@ -44,6 +48,10 @@ export default async function ReceiptPage({
   const r = await getReceiptBySlug(slug);
   if (!r) notFound();
   const initialUser = await getSessionUser();
+  const payerUrl = r.payerAddress ? arcAddressUrl(r.payerAddress) : null;
+  const settlementTxUrl = isTxHash(r.paymentReference)
+    ? arcTxUrl(r.paymentReference)
+    : null;
 
   const rows = [
     { who: r.creatorHandle ?? "creator", role: "creator", pct: "80%", micro: r.creatorMicroUsdc },
@@ -123,8 +131,20 @@ export default async function ReceiptPage({
         </h2>
         <DetailRow label="Provider" value={r.provider === "gateway_x402" ? "Circle Gateway (x402)" : r.provider} />
         <DetailRow label="Network" value={NETWORK_LABEL[r.network] ?? r.network} />
-        <DetailRow label="Payer (agent key)" value={shortAddr(r.payerAddress)} mono />
-        <DetailRow label="Settlement ref" value={r.paymentReference} mono />
+        <DetailRow
+          label="Payer (agent key)"
+          value={shortAddr(r.payerAddress)}
+          href={payerUrl ?? undefined}
+          linkLabel="View on Arc Testnet"
+          mono
+        />
+        <DetailRow
+          label={settlementTxUrl ? "Settlement tx" : "Settlement ref"}
+          value={r.paymentReference}
+          href={settlementTxUrl ?? undefined}
+          linkLabel="View tx on Arc Testnet"
+          mono
+        />
         {r.attributionText && <DetailRow label="Attribution" value={r.attributionText} />}
         {r.ownershipModel && (
           <DetailRow
@@ -144,7 +164,7 @@ export default async function ReceiptPage({
 
       <footer className="mt-auto pt-10">
         <a
-          href={r.payerAddress ? arcAddressUrl(r.payerAddress) : "https://testnet.arcscan.app"}
+          href={payerUrl ?? "https://testnet.arcscan.app"}
           target="_blank"
           rel="noreferrer"
           className="tabular inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
@@ -159,11 +179,36 @@ export default async function ReceiptPage({
   );
 }
 
-function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function DetailRow({
+  label,
+  value,
+  href,
+  linkLabel,
+  mono,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+  linkLabel?: string;
+  mono?: boolean;
+}) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-border/60 pb-2">
       <span className="shrink-0 text-muted-foreground">{label}</span>
-      <span className={`min-w-0 break-words text-right ${mono ? "tabular break-all" : ""}`}>{value}</span>
+      <span className={`min-w-0 break-words text-right ${mono ? "tabular break-all" : ""}`}>
+        {value}
+        {href && (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="ml-2 inline-flex items-center gap-1 text-xs text-sage underline-offset-2 hover:underline"
+          >
+            {linkLabel ?? "View on Arc Testnet"}
+            <ArrowSquareOut className="size-3.5" />
+          </a>
+        )}
+      </span>
     </div>
   );
 }
