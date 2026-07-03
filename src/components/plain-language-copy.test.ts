@@ -54,4 +54,15 @@ describe("plain language product copy", () => {
       "compactOnMobile",
     );
   });
+
+  it("keeps payment setup blockers clear before payment is clickable", () => {
+    const checkout = source("src/components/find/license-checkout.tsx");
+
+    expect(checkout).toContain("Checking payment setup");
+    expect(checkout).toContain("Switch to Arc Testnet");
+    expect(checkout).toContain("Add USDC and use clip");
+    expect(checkout).toContain("Add USDC to your wallet");
+    expect(checkout).not.toContain("Your Gateway USDC balance looks too low");
+    expect(checkout).not.toContain("First time? Set up payments");
+  });
 });

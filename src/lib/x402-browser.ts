@@ -18,6 +18,7 @@ import {
 import {
   createPublicClient,
   erc20Abi,
+  formatUnits,
   getAddress,
   http,
   parseUnits,
@@ -33,6 +34,8 @@ const GATEWAY_AUTH_VALIDITY_WINDOW_SECONDS = 604_900;
 
 const ARC_USDC = "0x3600000000000000000000000000000000000000" as const;
 const GATEWAY_WALLET = "0x0077777d7EBA4688BDeF3E311b846F25870A19B9" as const;
+const MICRO_USDC = BigInt(1_000_000);
+const ZERO_MICRO_USDC = BigInt(0);
 
 const transferWithAuthorizationTypes = {
   TransferWithAuthorization: [
@@ -72,6 +75,132 @@ export type UnlockResponse = {
 };
 
 type StatusReporter = (message: string) => void;
+
+export type GatewayReadinessStatus =
+  | "ready"
+  | "needs_gateway_funding"
+  | "needs_wallet_usdc";
+
+export interface GatewayReadinessInput {
+  requiredMicroUsdc: number | bigint;
+  gatewayAvailableMicroUsdc: bigint;
+  walletMicroUsdc: bigint;
+  allowanceMicroUsdc: bigint;
+}
+
+export interface GatewayReadiness {
+  status: GatewayReadinessStatus;
+  requiredMicroUsdc: bigint;
+  gatewayAvailableMicroUsdc: bigint;
+  walletMicroUsdc: bigint;
+  allowanceMicroUsdc: bigint;
+  shortfallMicroUsdc: bigint;
+  walletShortfallMicroUsdc: bigint;
+  allowanceNeeded: boolean;
+}
+
+function toMicroBigInt(value: number | bigint): bigint {
+  if (typeof value === "bigint") return value;
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error("micro-USDC must be a non-negative integer.");
+  }
+  return BigInt(value);
+}
+
+export function microUsdcToDecimal(value: number | bigint): string {
+  const micro = toMicroBigInt(value);
+  const whole = micro / MICRO_USDC;
+  const fraction = (micro % MICRO_USDC)
+    .toString()
+    .padStart(6, "0")
+    .replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole.toString();
+}
+
+export function formatMicroUsdcBalance(value: bigint): string {
+  return formatUnits(value, 6);
+}
+
+export function classifyGatewayReadiness(
+  input: GatewayReadinessInput,
+): GatewayReadiness {
+  const requiredMicroUsdc = toMicroBigInt(input.requiredMicroUsdc);
+  const shortfallMicroUsdc =
+    input.gatewayAvailableMicroUsdc >= requiredMicroUsdc
+      ? ZERO_MICRO_USDC
+      : requiredMicroUsdc - input.gatewayAvailableMicroUsdc;
+  const walletShortfallMicroUsdc =
+    input.walletMicroUsdc >= shortfallMicroUsdc
+      ? ZERO_MICRO_USDC
+      : shortfallMicroUsdc - input.walletMicroUsdc;
+  const allowanceNeeded =
+    shortfallMicroUsdc > ZERO_MICRO_USDC &&
+    input.allowanceMicroUsdc < shortfallMicroUsdc;
+
+  return {
+    status:
+      shortfallMicroUsdc === ZERO_MICRO_USDC
+        ? "ready"
+        : walletShortfallMicroUsdc > ZERO_MICRO_USDC
+          ? "needs_wallet_usdc"
+          : "needs_gateway_funding",
+    requiredMicroUsdc,
+    gatewayAvailableMicroUsdc: input.gatewayAvailableMicroUsdc,
+    walletMicroUsdc: input.walletMicroUsdc,
+    allowanceMicroUsdc: input.allowanceMicroUsdc,
+    shortfallMicroUsdc,
+    walletShortfallMicroUsdc,
+    allowanceNeeded,
+  };
+}
+
+async function getGatewayAvailableMicroUsdc(account: Address): Promise<bigint> {
+  const res = await fetch(
+    `/api/payments/gateway/balances?address=${encodeURIComponent(account)}`,
+    { credentials: "same-origin" },
+  );
+  const body = (await readJson<{ availableMicroUsdc?: string; error?: string }>(
+    res,
+  )) ?? { error: "empty_gateway_balance_response" };
+  if (!res.ok || !body.availableMicroUsdc) {
+    throw new Error(body.error ?? "gateway_balance_unavailable");
+  }
+  return BigInt(body.availableMicroUsdc);
+}
+
+export async function getGatewayPaymentReadiness(input: {
+  account: Address;
+  requiredMicroUsdc: number;
+}): Promise<GatewayReadiness> {
+  const publicClient = createPublicClient({
+    chain: arcTestnet,
+    transport: http("https://rpc.testnet.arc.network"),
+  });
+
+  const [walletMicroUsdc, allowanceMicroUsdc, gatewayAvailableMicroUsdc] =
+    await Promise.all([
+      publicClient.readContract({
+        address: ARC_USDC,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [input.account],
+      }),
+      publicClient.readContract({
+        address: ARC_USDC,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [input.account, GATEWAY_WALLET],
+      }),
+      getGatewayAvailableMicroUsdc(input.account),
+    ]);
+
+  return classifyGatewayReadiness({
+    requiredMicroUsdc: input.requiredMicroUsdc,
+    gatewayAvailableMicroUsdc,
+    walletMicroUsdc,
+    allowanceMicroUsdc,
+  });
+}
 
 function randomHex32(): Hex {
   const bytes = new Uint8Array(32);

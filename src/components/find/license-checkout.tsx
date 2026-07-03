@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+  ArrowClockwise,
+  ArrowSquareOut,
   CircleNotch,
   SealCheck,
   DownloadSimple,
   Coins,
   ShieldCheck,
+  WarningCircle,
 } from "@phosphor-icons/react/dist/ssr";
 import {
   createWalletClient,
@@ -21,8 +24,14 @@ import { UsdcAmount } from "@/components/brand/usdc";
 import {
   purchaseMomentLicense,
   depositGatewayUsdc,
+  getGatewayPaymentReadiness,
+  formatMicroUsdcBalance,
+  microUsdcToDecimal,
+  type GatewayReadiness,
   type UnlockResponse,
 } from "@/lib/x402-browser";
+
+const ARC_TESTNET_USDC_FAUCET_URL = "https://faucet.circle.com/";
 
 interface Moment {
   id: string;
@@ -43,7 +52,11 @@ async function getWallet(): Promise<{
   account: Address;
 }> {
   const eth = injected();
-  if (!eth) throw new Error("No browser wallet found. Install one to use this clip.");
+  if (!eth) {
+    throw new Error(
+      "No browser wallet found. Open this page inside your wallet app, or enable a wallet extension.",
+    );
+  }
   const accounts = (await eth.request({
     method: "eth_requestAccounts",
   })) as string[];
@@ -57,12 +70,124 @@ async function getWallet(): Promise<{
   return { walletClient, account };
 }
 
+async function getConnectedWallet(): Promise<WalletReady> {
+  const eth = injected();
+  if (!eth) {
+    throw new Error(
+      "No browser wallet found. Open this page inside your wallet app, or enable a wallet extension.",
+    );
+  }
+  const accounts = (await eth.request({ method: "eth_accounts" })) as string[];
+  if (!accounts?.[0]) {
+    throw new Error("Open your wallet and connect it to Findling.");
+  }
+  const account = getAddress(accounts[0]);
+  const walletClient = createWalletClient({
+    account,
+    chain: arcTestnet,
+    transport: custom(eth),
+  });
+  return { walletClient, account };
+}
+
 function msg(e: unknown): string {
   const raw = e instanceof Error ? e.message : String(e);
   if (/user rejected|denied|rejected the request/i.test(raw)) return "You cancelled the wallet request.";
-  if (/insufficient|exceeds balance|over_remaining_cap|payment_not_settled/i.test(raw))
-    return "Your Gateway USDC balance looks too low. Use Set up payments to fund it, then try again.";
+  if (/insufficient|exceeds balance|over_remaining_cap|payment_not_settled/i.test(raw)) {
+    return "Payment setup changed. Check your USDC balance, then try again.";
+  }
   return raw.length > 160 ? raw.slice(0, 160) + "..." : raw;
+}
+
+type WalletReady = Awaited<ReturnType<typeof getWallet>>;
+type PaymentSetup =
+  | { state: "idle" }
+  | { state: "checking" }
+  | { state: "wrong_network" }
+  | { state: "wallet_unavailable"; message: string }
+  | { state: "error"; message: string }
+  | { state: GatewayReadiness["status"]; readiness: GatewayReadiness };
+
+function setupFromReadiness(readiness: GatewayReadiness): PaymentSetup {
+  return { state: readiness.status, readiness };
+}
+
+async function inspectPaymentSetup(input: {
+  requiredMicroUsdc: number;
+  promptWallet?: boolean;
+}): Promise<{ setup: PaymentSetup; wallet?: WalletReady; readiness?: GatewayReadiness }> {
+  try {
+    const wallet = input.promptWallet ? await getWallet() : await getConnectedWallet();
+    const chainId = await wallet.walletClient.getChainId();
+    if (chainId !== arcTestnet.id) {
+      return { setup: { state: "wrong_network" }, wallet };
+    }
+    const readiness = await getGatewayPaymentReadiness({
+      account: wallet.account,
+      requiredMicroUsdc: input.requiredMicroUsdc,
+    });
+    return { setup: setupFromReadiness(readiness), wallet, readiness };
+  } catch (e) {
+    const message = msg(e);
+    const setup: PaymentSetup =
+      /No browser wallet|No wallet account|connect it to Findling|Open this page/i.test(
+        message,
+      )
+        ? { state: "wallet_unavailable", message }
+        : { state: "error", message };
+    return { setup };
+  }
+}
+
+function setupCopy(setup: PaymentSetup): { title: string; body: string } {
+  if (setup.state === "checking") {
+    return {
+      title: "Checking payment setup",
+      body: "We are checking your network, Gateway balance, and wallet USDC before payment.",
+    };
+  }
+  if (setup.state === "wrong_network") {
+    return {
+      title: "Switch network first",
+      body: "Payments settle on Arc Testnet. Switch once, then we will check your balance again.",
+    };
+  }
+  if (setup.state === "wallet_unavailable") {
+    return {
+      title: "Wallet access needed",
+      body: setup.message,
+    };
+  }
+  if (setup.state === "error") {
+    return {
+      title: "Could not check payment setup",
+      body: setup.message,
+    };
+  }
+  if (setup.state === "ready") {
+    return {
+      title: "Ready to pay",
+      body: "Gateway has enough USDC for this clip. Your wallet only needs to sign the payment.",
+    };
+  }
+  if (setup.state === "needs_gateway_funding") {
+    return {
+      title: "Add USDC before paying",
+      body: setup.readiness.allowanceNeeded
+        ? "Your wallet may ask for approval once, then a deposit. After that, we continue to payment."
+        : "One wallet transaction adds the missing USDC. After that, we continue to payment.",
+    };
+  }
+  if (setup.state === "needs_wallet_usdc") {
+    return {
+      title: "Add USDC to your wallet",
+      body: "Your wallet needs more Arc Testnet USDC before it can add funds for this clip.",
+    };
+  }
+  return {
+    title: "Payment setup",
+    body: "Connect your wallet to check whether you can pay for this clip.",
+  };
 }
 
 export function LicenseCheckout({
@@ -72,44 +197,58 @@ export function LicenseCheckout({
   moment: Moment;
   initialUser: Me;
 }) {
-  const [busy, setBusy] = useState<null | "fund" | "license">(null);
+  const [busy, setBusy] = useState<null | "setup" | "fund" | "license">(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [funded, setFunded] = useState(false);
   const [result, setResult] = useState<UnlockResponse | null>(null);
   // Auth state, seeded from the server and kept in sync by the ConnectWallet
   // button below (its onAuthChange). This drives ONE state-aware CTA instead of
   // three competing full-width buttons: connect first, then pay.
   const [me, setMe] = useState<Me | undefined>(initialUser);
   const signedIn = !!me?.address;
+  const [paymentSetup, setPaymentSetup] = useState<PaymentSetup>(() =>
+    initialUser?.address ? { state: "checking" } : { state: "idle" },
+  );
 
-  async function fund() {
-    setBusy("fund");
-    setStatus("Opening wallet.");
-    setError(null);
-    try {
-      const { walletClient, account } = await getWallet();
-      await depositGatewayUsdc({
-        walletClient,
-        account,
-        amountUsdc: "0.50",
-        onStatus: setStatus,
+  const refreshPaymentSetup = useCallback(
+    async (opts: { promptWallet?: boolean } = {}) => {
+      if (!signedIn) {
+        setPaymentSetup({ state: "idle" });
+        return;
+      }
+      setPaymentSetup({ state: "checking" });
+      setError(null);
+      const { setup } = await inspectPaymentSetup({
+        requiredMicroUsdc: moment.priceMicroUsdc,
+        promptWallet: opts.promptWallet,
       });
-      setFunded(true);
-    } catch (e) {
-      setError(msg(e));
-    } finally {
-      setStatus(null);
-      setBusy(null);
-    }
-  }
+      setPaymentSetup(setup);
+    },
+    [moment.priceMicroUsdc, signedIn],
+  );
 
-  async function license() {
-    setBusy("license");
-    setStatus("Opening wallet.");
-    setError(null);
-    try {
-      const { walletClient, account } = await getWallet();
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      await Promise.resolve();
+      if (!alive) return;
+      if (!signedIn) {
+        setPaymentSetup({ state: "idle" });
+        return;
+      }
+      setPaymentSetup({ state: "checking" });
+      const { setup } = await inspectPaymentSetup({
+        requiredMicroUsdc: moment.priceMicroUsdc,
+      });
+      if (alive) setPaymentSetup(setup);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [moment.priceMicroUsdc, signedIn]);
+
+  const completeLicense = useCallback(
+    async ({ walletClient, account }: WalletReady) => {
       // 1. A fresh fund-once buyer grant, capped to exactly this purchase.
       setStatus("Creating your clip pass.");
       const grantRes = await fetch("/api/agent/session-grants", {
@@ -122,12 +261,11 @@ export function LicenseCheckout({
         }),
       });
       if (!grantRes.ok) {
-        setError(
+        throw new Error(
           grantRes.status === 401
-            ? "Connect your wallet above first, then use this clip."
+            ? "Connect your wallet first, then use this clip."
             : "Could not start this payment. Try again.",
         );
-        return;
       }
       const { grant } = (await grantRes.json()) as { grant: { id: string } };
       // 2. Pay the x402 unlock with the injected wallet as the session key.
@@ -140,13 +278,99 @@ export function LicenseCheckout({
         onStatus: setStatus,
       });
       setResult(unlock);
+    },
+    [moment.id, moment.priceMicroUsdc],
+  );
+
+  const switchToArc = useCallback(async () => {
+    setBusy("setup");
+    setStatus("Opening wallet.");
+    setError(null);
+    try {
+      const { walletClient } = await getWallet();
+      setStatus("Switching to Arc Testnet.");
+      await walletClient.switchChain({ id: arcTestnet.id });
+      setStatus("Checking payment setup.");
+      const { setup } = await inspectPaymentSetup({
+        requiredMicroUsdc: moment.priceMicroUsdc,
+      });
+      setPaymentSetup(setup);
     } catch (e) {
-      setError(msg(e));
+      const message = msg(e);
+      setError(message);
+      setPaymentSetup({ state: "error", message });
     } finally {
       setStatus(null);
       setBusy(null);
     }
-  }
+  }, [moment.priceMicroUsdc]);
+
+  const license = useCallback(async () => {
+    setBusy("license");
+    setStatus("Checking payment setup.");
+    setError(null);
+    try {
+      const { setup, wallet } = await inspectPaymentSetup({
+        requiredMicroUsdc: moment.priceMicroUsdc,
+        promptWallet: true,
+      });
+      setPaymentSetup(setup);
+      if (!wallet || setup.state !== "ready") return;
+      await completeLicense(wallet);
+    } catch (e) {
+      const message = msg(e);
+      setError(message);
+      setPaymentSetup({ state: "error", message });
+    } finally {
+      setStatus(null);
+      setBusy(null);
+    }
+  }, [completeLicense, moment.priceMicroUsdc]);
+
+  const addFundsAndLicense = useCallback(async () => {
+    setBusy("fund");
+    setStatus("Checking payment setup.");
+    setError(null);
+    try {
+      const { setup, wallet, readiness } = await inspectPaymentSetup({
+        requiredMicroUsdc: moment.priceMicroUsdc,
+        promptWallet: true,
+      });
+      setPaymentSetup(setup);
+      if (!wallet || !readiness) return;
+      if (readiness.status === "ready") {
+        setBusy("license");
+        await completeLicense(wallet);
+        return;
+      }
+      if (readiness.status !== "needs_gateway_funding") return;
+
+      await depositGatewayUsdc({
+        walletClient: wallet.walletClient,
+        account: wallet.account,
+        amountUsdc: microUsdcToDecimal(readiness.shortfallMicroUsdc),
+        onStatus: setStatus,
+      });
+
+      setStatus("Checking Gateway balance.");
+      const after = await getGatewayPaymentReadiness({
+        account: wallet.account,
+        requiredMicroUsdc: moment.priceMicroUsdc,
+      });
+      setPaymentSetup(setupFromReadiness(after));
+      if (after.status !== "ready") return;
+
+      setBusy("license");
+      await completeLicense(wallet);
+    } catch (e) {
+      const message = msg(e);
+      setError(message);
+      setPaymentSetup({ state: "error", message });
+    } finally {
+      setStatus(null);
+      setBusy(null);
+    }
+  }, [completeLicense, moment.priceMicroUsdc]);
 
   // ── licensed ───────────────────────────────────────────────────────────────
   if (result) {
@@ -188,6 +412,10 @@ export function LicenseCheckout({
     );
   }
 
+  const setupText = setupCopy(paymentSetup);
+  const readiness = "readiness" in paymentSetup ? paymentSetup.readiness : null;
+  const paymentBusy = busy === "setup" || busy === "fund" || busy === "license";
+
   // ── checkout ─────────────────────────────────────────────────────────────────
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
@@ -213,44 +441,142 @@ export function LicenseCheckout({
 
       {signedIn ? (
         <>
-          {/* Connected: the wallet demotes to a compact status row, and paying is
-              the single primary action. */}
-          <div className="mt-4 flex items-center justify-between gap-2">
-            <span className="text-xs text-muted-foreground">Paying from</span>
-            <ConnectWallet initialUser={me} onAuthChange={setMe} />
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-xs text-muted-foreground">Wallet</span>
+            <ConnectWallet
+              initialUser={me}
+              onAuthChange={setMe}
+              className="w-full justify-center sm:w-auto"
+            />
           </div>
 
-          <button
-            type="button"
-            onClick={license}
-            disabled={busy !== null}
-            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
-          >
-            {busy === "license" && <CircleNotch weight="bold" className="size-4 animate-spin" />}
-            {busy === "license" ? "Working..." : "Use this clip"}
-          </button>
+          <div className="mt-4 border-y border-border/70 py-3">
+            <div className="flex items-start gap-2.5">
+              {paymentSetup.state === "checking" ? (
+                <CircleNotch weight="bold" className="mt-0.5 size-4 shrink-0 animate-spin text-sage" />
+              ) : paymentSetup.state === "ready" ? (
+                <ShieldCheck weight="fill" className="mt-0.5 size-4 shrink-0 text-sage" />
+              ) : paymentSetup.state === "needs_gateway_funding" ? (
+                <Coins weight="bold" className="mt-0.5 size-4 shrink-0 text-sage" />
+              ) : (
+                <WarningCircle weight="bold" className="mt-0.5 size-4 shrink-0 text-amber-400" />
+              )}
+              <div>
+                <p className="text-sm font-medium text-foreground">{setupText.title}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  {setupText.body}
+                </p>
+              </div>
+            </div>
 
-          {busy === "license" && status && (
-            <p role="status" aria-live="polite" className="mt-2 text-xs text-muted-foreground">
-              {status}
-            </p>
+            {readiness && (
+              <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[0.7rem] text-muted-foreground">
+                <dt>Clip price</dt>
+                <dd className="text-right tabular text-foreground">
+                  {formatMicroUsdcBalance(readiness.requiredMicroUsdc)} USDC
+                </dd>
+                <dt>Ready in Gateway</dt>
+                <dd className="text-right tabular text-foreground">
+                  {formatMicroUsdcBalance(readiness.gatewayAvailableMicroUsdc)} USDC
+                </dd>
+                <dt>Wallet USDC</dt>
+                <dd className="text-right tabular text-foreground">
+                  {formatMicroUsdcBalance(readiness.walletMicroUsdc)} USDC
+                </dd>
+                {readiness.shortfallMicroUsdc > BigInt(0) && (
+                  <>
+                    <dt>Need before pay</dt>
+                    <dd className="text-right tabular text-foreground">
+                      {formatMicroUsdcBalance(readiness.shortfallMicroUsdc)} USDC
+                    </dd>
+                  </>
+                )}
+              </dl>
+            )}
+
+            {paymentSetup.state === "needs_wallet_usdc" && readiness && (
+              <a
+                href={ARC_TESTNET_USDC_FAUCET_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-sage transition-colors hover:text-foreground"
+              >
+                Get Arc Testnet USDC from faucet
+                <ArrowSquareOut weight="bold" className="size-3.5" />
+              </a>
+            )}
+          </div>
+
+          {paymentSetup.state === "ready" && (
+            <button
+              type="button"
+              onClick={license}
+              disabled={paymentBusy}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+            >
+              {busy === "license" && <CircleNotch weight="bold" className="size-4 animate-spin" />}
+              {busy === "license" ? "Working..." : "Use this clip"}
+            </button>
           )}
 
-          <button
-            type="button"
-            onClick={fund}
-            disabled={busy !== null}
-            className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-          >
-            {busy === "fund" ? (
-              <CircleNotch weight="bold" className="size-3.5 animate-spin" />
-            ) : (
-              <Coins weight="bold" className="size-3.5 text-sage" />
-            )}
-            {funded ? "Gateway funded. Add more USDC" : "First time? Set up payments"}
-          </button>
+          {paymentSetup.state === "needs_gateway_funding" && (
+            <button
+              type="button"
+              onClick={addFundsAndLicense}
+              disabled={paymentBusy}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+            >
+              {busy === "fund" && <CircleNotch weight="bold" className="size-4 animate-spin" />}
+              {busy === "fund" ? "Working..." : "Add USDC and use clip"}
+            </button>
+          )}
 
-          {busy === "fund" && status && (
+          {paymentSetup.state === "wrong_network" && (
+            <button
+              type="button"
+              onClick={switchToArc}
+              disabled={paymentBusy}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+            >
+              {busy === "setup" && <CircleNotch weight="bold" className="size-4 animate-spin" />}
+              {busy === "setup" ? "Working..." : "Switch to Arc Testnet"}
+            </button>
+          )}
+
+          {paymentSetup.state === "needs_wallet_usdc" && (
+            <button
+              type="button"
+              disabled
+              className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-border px-4 py-2.5 text-sm font-semibold text-muted-foreground opacity-70"
+            >
+              Add USDC to your wallet
+            </button>
+          )}
+
+          {(paymentSetup.state === "checking" || paymentSetup.state === "idle") && (
+            <button
+              type="button"
+              disabled
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm font-semibold text-muted-foreground opacity-70"
+            >
+              <CircleNotch weight="bold" className="size-4 animate-spin" />
+              Checking payment setup...
+            </button>
+          )}
+
+          {(paymentSetup.state === "wallet_unavailable" || paymentSetup.state === "error") && (
+            <button
+              type="button"
+              onClick={() => refreshPaymentSetup({ promptWallet: true })}
+              disabled={paymentBusy}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border px-4 py-2.5 text-sm font-semibold text-foreground transition-transform active:scale-[0.98] disabled:opacity-50"
+            >
+              <ArrowClockwise weight="bold" className="size-4" />
+              Check again
+            </button>
+          )}
+
+          {status && (
             <p role="status" aria-live="polite" className="mt-2 text-xs text-muted-foreground">
               {status}
             </p>
@@ -259,7 +585,7 @@ export function LicenseCheckout({
           {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 
           <p className="mt-4 text-[0.7rem] leading-relaxed text-muted-foreground">
-            Your wallet signs each payment directly. Findling never holds your funds.
+            Your wallet signs the payment. Findling never holds your funds.
           </p>
         </>
       ) : (
