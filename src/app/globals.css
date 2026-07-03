@@ -186,7 +186,20 @@
   }
 }
 
-/* pointer-only: hovering the lockup "locks focus" — frame settles sharp and the
+/* hero credit pill - a light sheen sweeps across the glass once per cycle, then
+   rests off-screen. Transform-only; gated behind motion-safe in the markup. */
+@keyframes pill-sheen {
+  0%,
+  22% {
+    transform: translateX(-220%) skewX(-14deg);
+  }
+  58%,
+  100% {
+    transform: translateX(560%) skewX(-14deg);
+  }
+}
+
+/* pointer-only: hovering the lockup "locks focus" - frame settles sharp and the
    held moment nudges into playback (both idle loops pause) */
 @media (hover: hover) {
   .mark-lockup:hover .mark-bracket,

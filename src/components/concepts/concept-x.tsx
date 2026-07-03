@@ -26,7 +26,7 @@ import {
 } from "@phosphor-icons/react";
 import { UsdcIcon } from "@/components/brand/usdc";
 import { FindlingLogo } from "@/components/brand/logo";
-import { PoweredBy } from "@/components/brand/tech-logos";
+import { PoweredBy, X402Mark, ArcMark } from "@/components/brand/tech-logos";
 import { ConnectWallet } from "@/components/auth/connect-wallet";
 
 if (typeof window !== "undefined") {
@@ -618,8 +618,20 @@ function Hero() {
   return (
     <section className="relative flex min-h-[100dvh] flex-col justify-end px-5 pb-20 md:px-12 md:pb-24">
       <div className="max-w-5xl">
-        <div className="hero-chip mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-white/70 backdrop-blur-md">
-          what this app does
+        <div className="hero-chip group relative mb-5 inline-flex items-center gap-2.5 overflow-hidden rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-[0.92rem] backdrop-blur-md transition-colors duration-500 hover:border-white/30">
+          {/* ambient light sweep across the glass */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 left-0 w-1/5 bg-gradient-to-r from-transparent via-white/25 to-transparent motion-safe:animate-[pill-sheen_5.5s_ease-in-out_infinite]"
+          />
+          <span className="relative font-[family-name:var(--font-cx)] tracking-tight text-white/60">
+            Powered by
+          </span>
+          <X402Mark heightEm={1.05} className="relative text-white" />
+          <span className="relative font-[family-name:var(--font-cx)] tracking-tight text-white/60">
+            on
+          </span>
+          <ArcMark heightEm={1.1} className="relative text-white" />
         </div>
         <h1
           aria-label={HERO_TITLE}
@@ -637,7 +649,7 @@ function Hero() {
         <p className="hero-copy mt-6 max-w-xl text-lg leading-relaxed text-white/75">
           {HOME_PURPOSE}
         </p>
-        <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
           <Link
             href="/studio"
             className="hero-action inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-foreground px-7 py-3.5 text-sm font-semibold text-background transition-transform duration-300 hover:-translate-y-0.5 active:translate-y-0"
@@ -646,15 +658,16 @@ function Hero() {
           </Link>
           <Link
             href="/agents"
-            className="hero-action inline-flex min-h-12 items-center justify-center gap-2 px-2 py-3 text-sm font-medium text-white/70 underline-offset-4 transition-colors duration-300 hover:text-white hover:underline"
+            className="hero-action inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-white/15 px-6 py-3.5 text-sm font-medium text-white/80 transition-colors duration-300 hover:border-white/30 hover:text-white"
           >
-            <Path weight="bold" className="size-4" /> Plug in your agent
+            <Path weight="bold" className="size-4 text-sage" /> Plug in your agent
           </Link>
         </div>
-        <div className="hero-action mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/58">
+        <div className="hero-action mt-6 flex items-center gap-x-3 text-xs text-white/40">
           <Link href="/privacy" className="underline-offset-4 transition-colors hover:text-white hover:underline">
             Privacy Policy
           </Link>
+          <span aria-hidden className="text-white/25">·</span>
           <Link href="/terms" className="underline-offset-4 transition-colors hover:text-white hover:underline">
             Terms of Service
           </Link>

@@ -2,44 +2,54 @@ import { cn } from "@/lib/utils";
 import { UsdcIcon } from "./usdc";
 
 /**
- * Infrastructure credit marks for the footer "Built on" strip. The USDC coin is
- * the real Circle token glyph; the Circle / Arc marks are clean monochrome
- * lockups in currentColor so they sit on any surface. (Swap in the official
- * brand SVGs here if/when vendored — the lockup API stays the same.)
+ * Infrastructure credit marks for the footer "Built on" strip. The SVG assets
+ * are rendered as monochrome CSS masks so they inherit currentColor and sit
+ * cleanly on the dark surface.
  */
 
-function CircleMark({ className }: { className?: string }) {
-  // ring + core — Circle's stablecoin infrastructure
+function BrandMark({
+  src,
+  label,
+  ratio,
+  heightEm = 1.1,
+  className,
+}: {
+  src: string;
+  /** accessible name */
+  label: string;
+  /** intrinsic width / height, so the mask box keeps the logo's aspect ratio */
+  ratio: number;
+  /** mark height, in em relative to the surrounding text */
+  heightEm?: number;
+  className?: string;
+}) {
   return (
-    <svg viewBox="0 0 24 24" className={cn("size-[1.15em]", className)} fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-      <circle cx="12" cy="12" r="3.4" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ArcMark({ className }: { className?: string }) {
-  // a swept arc — the Arc network
-  return (
-    <svg viewBox="0 0 24 24" className={cn("size-[1.15em]", className)} fill="none" aria-hidden>
-      <path
-        d="M3.5 18.5 A 9.5 9.5 0 0 1 20.5 18.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <circle cx="12" cy="6.2" r="1.7" fill="currentColor" />
-    </svg>
+    <span
+      role="img"
+      aria-label={label}
+      className={cn("inline-block shrink-0", className)}
+      style={{
+        height: `${heightEm}em`,
+        width: `${(heightEm * ratio).toFixed(3)}em`,
+        backgroundColor: "currentColor",
+        WebkitMaskImage: `url(${src})`,
+        maskImage: `url(${src})`,
+        WebkitMaskRepeat: "no-repeat",
+        maskRepeat: "no-repeat",
+        WebkitMaskSize: "contain",
+        maskSize: "contain",
+        WebkitMaskPosition: "center",
+        maskPosition: "center",
+      }}
+    />
   );
 }
 
 function Lockup({
-  mark,
-  name,
+  children,
   href,
 }: {
-  mark: React.ReactNode;
-  name: React.ReactNode;
+  children: React.ReactNode;
   href: string;
 }) {
   return (
@@ -49,9 +59,47 @@ function Lockup({
       rel="noreferrer"
       className="inline-flex items-center gap-2 text-white/65 transition-colors hover:text-white"
     >
-      {mark}
-      <span className="text-sm font-medium tracking-tight">{name}</span>
+      {children}
     </a>
+  );
+}
+
+/** The official x402 wordmark alone, mono via currentColor - reusable inline
+ *  (e.g. a "Powered by x402 payments" chip). Set text color on it to tint. */
+export function X402Mark({
+  heightEm,
+  className,
+}: {
+  heightEm?: number;
+  className?: string;
+}) {
+  return (
+    <BrandMark
+      src="/brand/x402.svg"
+      label="x402"
+      ratio={2.595}
+      heightEm={heightEm}
+      className={className}
+    />
+  );
+}
+
+/** The official Arc wordmark, mono via currentColor - reusable inline. */
+export function ArcMark({
+  heightEm,
+  className,
+}: {
+  heightEm?: number;
+  className?: string;
+}) {
+  return (
+    <BrandMark
+      src="/brand/arc.svg"
+      label="Arc"
+      ratio={2.92}
+      heightEm={heightEm}
+      className={className}
+    />
   );
 }
 
@@ -60,18 +108,23 @@ export function PoweredBy({ className }: { className?: string }) {
   return (
     <div className={cn("flex flex-col gap-3.5", className)}>
       <p className="text-[0.7rem] uppercase tracking-[0.18em] text-white/40">Built on</p>
-      <div className="flex flex-wrap items-center gap-x-7 gap-y-4">
-        <Lockup href="https://www.circle.com" mark={<CircleMark />} name="Circle" />
-        <Lockup href="https://www.arc.network" mark={<ArcMark />} name="Arc" />
-        <a
-          href="https://www.x402.org"
-          target="_blank"
-          rel="noreferrer"
-          className="font-mono text-sm tracking-tight text-white/65 transition-colors hover:text-white"
-        >
-          x402
-        </a>
-        <Lockup href="https://www.circle.com/usdc" mark={<UsdcIcon size="1.15em" />} name="USDC" />
+      <div className="flex flex-wrap items-center gap-x-7 gap-y-4 text-sm">
+        <Lockup href="https://www.circle.com">
+          <BrandMark src="/brand/circle.svg" label="Circle" ratio={1} />
+          <span className="font-medium tracking-tight">Circle</span>
+        </Lockup>
+        <Lockup href="https://arc.network">
+          <BrandMark src="/brand/arc-icon.svg" label="Arc" ratio={0.969} />
+          <span className="font-medium tracking-tight">Arc</span>
+        </Lockup>
+        {/* The official x402 mark is a self-contained wordmark, so it stands alone. */}
+        <Lockup href="https://www.x402.org">
+          <BrandMark src="/brand/x402.svg" label="x402" ratio={2.595} />
+        </Lockup>
+        <Lockup href="https://www.circle.com/usdc">
+          <UsdcIcon size="1.15em" />
+          <span className="font-medium tracking-tight">USDC</span>
+        </Lockup>
       </div>
     </div>
   );
