@@ -108,4 +108,33 @@ describe("plain language product copy", () => {
     expect(balance).toContain("Wallet USDC");
     expect(balance).toContain("fetchWalletUsdcBalance");
   });
+
+  it("provides public OAuth policy pages", () => {
+    const privacy = source("src/app/privacy/page.tsx");
+    const terms = source("src/app/terms/page.tsx");
+
+    expect(privacy).toContain("Privacy Policy");
+    expect(privacy).toContain("Google and YouTube");
+    expect(privacy).toContain("We do not sell personal data.");
+    expect(privacy).toContain("akinuntemitayodaniel@gmail.com");
+
+    expect(terms).toContain("Terms of Service");
+    expect(terms).toContain("Use clips only after payment unlocks them.");
+    expect(terms).toContain("Findling is not a bank.");
+    expect(terms).toContain("akinuntemitayodaniel@gmail.com");
+  });
+
+  it("explains the app purpose on the public home page", () => {
+    const landing = source("src/components/concepts/concept-x.tsx");
+    const layout = source("src/app/layout.tsx");
+
+    expect(layout).toContain("A marketplace where people and agents pay to use video clips.");
+    expect(landing).toContain(
+      "Findling is a marketplace where creators publish video clips, finders make clips easier to discover, and people or AI agents pay in USDC to use the clips in their projects.",
+    );
+    expect(landing).toContain(
+      "Creators can connect YouTube, import their own videos, set prices, and get paid when a clip is used.",
+    );
+    expect(landing).toContain("Finders curate useful clips and earn a share when their picks are used.");
+  });
 });

@@ -44,6 +44,14 @@ const MOTION_EASE = "power3.out";
 const VIDEO = "/demo/snowboard.mp4";
 const POSTER = "/demo/snowboard-poster.jpg";
 const AGENT_QUERY = "find an 8s snowboard trick under $0.10 for a winter recap";
+const HOME_PURPOSE =
+  "Findling is a marketplace where creators publish video clips, finders make clips easier to discover, and people or AI agents pay in USDC to use the clips in their projects.";
+const CREATOR_PURPOSE =
+  "Creators can connect YouTube, import their own videos, set prices, and get paid when a clip is used.";
+const FINDER_PURPOSE =
+  "Finders curate useful clips and earn a share when their picks are used.";
+const BUYER_PURPOSE =
+  "Buyers and agents search for the right clip, pay once, and keep a receipt that shows what was unlocked.";
 
 // stable 3dp for the animated count-up + round demo prices; the split rows below
 // use formatMicroUsdc so a non-round leg would still render exactly.
@@ -157,6 +165,7 @@ export function LandingX({
       <main className="relative z-10">
         <LandingHeader />
         <Hero />
+        <PurposeSection />
         {reduceMotion ? (
           <ReducedMomentStory priceMicroUsdc={priceMicroUsdc} split={split} />
         ) : (
@@ -622,8 +631,7 @@ function Hero() {
           </span>
         </h1>
         <p className="hero-copy mt-6 max-w-xl text-lg leading-relaxed text-white/75">
-          Follow one 8-second snowboard trick as it becomes a hosted clip, gets found by an
-          agent, unlocks through x402, and settles into real USDC splits on Arc.
+          {HOME_PURPOSE}
         </p>
         <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Link
@@ -642,6 +650,50 @@ function Hero() {
       </div>
       <div className="hero-cue mt-14 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-white/65">
         <CaretDown weight="bold" className="size-3.5 text-sage" /> follow one clip
+      </div>
+    </section>
+  );
+}
+
+function PurposeSection() {
+  const roles = [
+    {
+      label: "Creators",
+      body: CREATOR_PURPOSE,
+      Icon: FilmStrip,
+    },
+    {
+      label: "Finders",
+      body: FINDER_PURPOSE,
+      Icon: Sparkle,
+    },
+    {
+      label: "Buyers and agents",
+      body: BUYER_PURPOSE,
+      Icon: Wallet,
+    },
+  ];
+
+  return (
+    <section className="cx-reveal px-5 py-14 md:px-12 md:py-18">
+      <div className="mx-auto grid max-w-6xl gap-7 border-y border-white/10 py-9 backdrop-blur-sm md:grid-cols-[0.82fr_1.18fr] md:items-start md:py-11">
+        <div>
+          <p className="text-xs uppercase tracking-[0.18em] text-white/50">what findling does</p>
+          <h2 className="mt-3 max-w-xl font-[family-name:var(--font-cx)] text-3xl font-light leading-tight tracking-tight text-white md:text-5xl">
+            Video clips people and agents can pay to use.
+          </h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {roles.map(({ label, body, Icon }) => (
+            <article key={label} className="rounded-lg border border-white/10 bg-zinc-950/62 p-4 backdrop-blur-md">
+              <span className="grid size-9 place-items-center rounded-full border border-white/15 bg-white/5 text-sage">
+                <Icon weight="duotone" className="size-4.5" />
+              </span>
+              <h3 className="mt-4 text-sm font-semibold text-white">{label}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-white/62">{body}</p>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -1193,6 +1245,8 @@ function FooterCTA() {
                 <Link href="/studio" className="transition-colors hover:text-white">Studio</Link>
                 <Link href="/wanted" className="transition-colors hover:text-white">Wanted</Link>
                 <Link href="/agents" className="transition-colors hover:text-white">For agents</Link>
+                <Link href="/privacy" className="transition-colors hover:text-white">Privacy</Link>
+                <Link href="/terms" className="transition-colors hover:text-white">Terms</Link>
               </div>
             </div>
             <PoweredBy className="md:items-end md:text-right" />
