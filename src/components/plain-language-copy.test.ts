@@ -140,6 +140,8 @@ describe("plain language product copy", () => {
     expect(page).toContain("https://findling.timidan.xyz/privacy");
     expect(page).toContain("https://findling.timidan.xyz/terms");
     expect(page).toContain("<noscript>");
+    expect(page).not.toContain("<ReviewSummary />");
+    expect(page).not.toContain("function ReviewSummary");
     expect(landing).toContain("Findling is a video clip marketplace.");
     expect(landing).toContain(
       "Creators connect YouTube to import videos they own, publish short clips, set prices, and get paid when people or AI agents pay in USDC to use those clips.",
