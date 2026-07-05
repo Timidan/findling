@@ -29,7 +29,7 @@ import { supabaseStorage } from "../storage/supabase-storage";
 
 const DEFAULT_FEED_LIMIT = 30;
 const MAX_FEED_LIMIT = 60;
-const WANTED_FETCH_LIMIT = 100;
+const WANTED_FETCH_LIMIT = 500;
 const PREVIEW_SIGNED_TTL_SECONDS = 60 * 15;
 
 export type FeedTab = "all" | "available" | "wanted" | "trending";
@@ -262,6 +262,15 @@ function availableSqlFilters(filters: NormalizedFilters, provider?: EmbeddingPro
   return conditions;
 }
 
+function licenseCountSql() {
+  return sql<number>`(
+    select count(*)::int
+    from ${purchases}
+    where ${purchases.momentId} = ${moments.id}
+      and ${purchases.status} = 'settled'
+  )`;
+}
+
 function baseAvailableSelect() {
   return {
     moment: moments,
@@ -272,12 +281,7 @@ function baseAvailableSelect() {
       walletAddress: users.walletAddress,
       email: users.email,
     },
-    licenses: sql<number>`(
-      select count(*)::int
-      from ${purchases}
-      where ${purchases.momentId} = ${moments.id}
-        and ${purchases.status} = 'settled'
-    )`,
+    licenses: licenseCountSql(),
   };
 }
 
@@ -315,6 +319,20 @@ async function recentAvailableRows(
     .innerJoin(users, eq(users.id, moments.creatorId))
     .where(and(...availableSqlFilters(filters)))
     .orderBy(desc(moments.createdAt))
+    .limit(limit);
+}
+
+async function trendingAvailableRows(
+  filters: NormalizedFilters,
+  limit: number,
+): Promise<AvailableQueryRow[]> {
+  return db
+    .select(baseAvailableSelect())
+    .from(moments)
+    .innerJoin(assets, eq(assets.id, moments.assetId))
+    .innerJoin(users, eq(users.id, moments.creatorId))
+    .where(and(...availableSqlFilters(filters)))
+    .orderBy(desc(licenseCountSql()), desc(moments.createdAt))
     .limit(limit);
 }
 
@@ -435,6 +453,24 @@ export async function getLicensableFeed(
   return availableItemsFromRows(rows, filters);
 }
 
+async function getTrendingAvailableFeed(
+  opts: LicensableFeedOptions = {},
+): Promise<AvailableFeedItem[]> {
+  const limit = clampFeedLimit(opts.limit);
+  const query = normalizeQuery(opts.query);
+  const filters = normalizeFilters(opts.filters);
+  if (query) {
+    const items = await getLicensableFeed({ ...opts, limit: MAX_FEED_LIMIT });
+    return items
+      .sort((a, b) => b.licenses - a.licenses)
+      .slice(0, limit);
+  }
+  return availableItemsFromRows(
+    await trendingAvailableRows(filters, limit),
+    filters,
+  );
+}
+
 function matchesWantedQuery(
   listing: { title: string; externalIdentity: string },
   query: string,
@@ -448,7 +484,9 @@ function matchesWantedQuery(
 }
 
 async function getWantedFeed(
-  opts: Pick<UnifiedFeedOptions, "query" | "limit" | "filters"> = {},
+  opts: Pick<UnifiedFeedOptions, "query" | "limit" | "filters"> & {
+    sort?: "recent" | "trending";
+  } = {},
 ): Promise<WantedFeedItem[]> {
   const limit = clampFeedLimit(opts.limit);
   const query = normalizeQuery(opts.query);
@@ -464,6 +502,12 @@ async function getWantedFeed(
       if (!filters.source) return true;
       return sourceFromExternalIdentityKind(listing.externalIdentityKind) === filters.source;
     })
+    .sort((a, b) =>
+      opts.sort === "trending"
+        ? b.pledgeCount - a.pledgeCount ||
+          b.pledgedDemandMicroUsdc - a.pledgedDemandMicroUsdc
+        : 0,
+    )
     .slice(0, limit)
     .map((listing) => ({
       kind: "wanted" as const,
@@ -518,8 +562,13 @@ async function getTrendingFeed(
 ): Promise<FeedItem[]> {
   const fetchLimit = Math.min(Math.max(limit * 2, limit), MAX_FEED_LIMIT);
   const [wanted, available] = await Promise.all([
-    getWantedFeed({ query: opts.query, filters: opts.filters, limit: fetchLimit }),
-    getLicensableFeed({ ...opts, limit: fetchLimit }),
+    getWantedFeed({
+      query: opts.query,
+      filters: opts.filters,
+      limit: WANTED_FETCH_LIMIT,
+      sort: "trending",
+    }),
+    getTrendingAvailableFeed({ ...opts, limit: fetchLimit }),
   ]);
 
   return [...available, ...wanted]

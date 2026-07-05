@@ -59,6 +59,8 @@ export type ListListingsResult<
   ? PublicListListingsResult
   : AgentListListingsResult;
 
+const MAX_LISTINGS_LIMIT = 500;
+
 export class ListingValidationError extends Error {
   constructor(readonly reason: string) {
     super(reason);
@@ -206,7 +208,7 @@ export async function listListings(
   }
   const limit =
     typeof input.limit === "number" && Number.isFinite(input.limit)
-      ? Math.min(Math.max(Math.trunc(input.limit), 1), 100)
+      ? Math.min(Math.max(Math.trunc(input.limit), 1), MAX_LISTINGS_LIMIT)
       : 50;
 
   const rows = await db

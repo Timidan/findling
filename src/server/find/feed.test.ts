@@ -385,6 +385,7 @@ describe("getUnifiedFeed", () => {
 
     const result = await getUnifiedFeed({ tab: "trending", limit: 4 });
 
+    expect(mocks.lastQuery?.orderBy.mock.calls[0]).toHaveLength(2);
     expect(result.items.map((item) => ("listingId" in item ? item.listingId : item.id))).toEqual([
       "hot",
       "wanted-1",
