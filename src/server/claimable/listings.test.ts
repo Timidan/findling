@@ -17,6 +17,7 @@ import {
   createListingResponse,
   listListingsResponse,
 } from "../../app/api/agent/listings/route";
+import { createFindRequestResponse } from "../../app/api/find/requests/route";
 
 const FINDER_ID = "11111111-1111-4111-8111-111111111111";
 const BUYER_ID = "22222222-2222-4222-8222-222222222222";
@@ -279,5 +280,68 @@ describe("agent listing route role checks", () => {
     });
     expect(list).toHaveBeenCalledTimes(2);
     expect(list).toHaveBeenCalledWith({ audience: "agent" });
+  });
+});
+
+describe("human request route", () => {
+  const finderAgent = {
+    userId: FINDER_ID,
+    via: "agent" as const,
+    roles: ["finder"],
+    address: "0xfinder",
+  };
+  const sessionActor = {
+    userId: FINDER_ID,
+    via: "session" as const,
+    roles: [],
+    address: "0xsession",
+  };
+
+  it("allows signed-in humans to post a request and revalidates the feed", async () => {
+    const create = vi.fn(async () => ({
+      listing: listingRow() as ClaimableListingView,
+      claimSecret: "raw-secret",
+    }));
+    const revalidate = vi.fn();
+
+    const ok = await createFindRequestResponse(
+      sessionActor,
+      createInput,
+      "https://findling.test",
+      { create, revalidate },
+    );
+
+    expect(ok.status).toBe(201);
+    await expect(ok.json()).resolves.toMatchObject({
+      claimUrl: "https://findling.test/claim/raw-secret",
+      listing: { id: "33333333-3333-4333-8333-333333333333" },
+    });
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenLastCalledWith(FINDER_ID, createInput);
+    expect(revalidate).toHaveBeenCalledWith("find-feed");
+  });
+
+  it("keeps the human request route separate from the agent route", async () => {
+    const create = vi.fn(async () => ({
+      listing: listingRow() as ClaimableListingView,
+      claimSecret: "raw-secret",
+    }));
+
+    expect(
+      (await createFindRequestResponse(null, createInput, "https://findling.test", {
+        create,
+      })).status,
+    ).toBe(401);
+    expect(
+      (
+        await createFindRequestResponse(
+          finderAgent,
+          createInput,
+          "https://findling.test",
+          { create },
+        )
+      ).status,
+    ).toBe(403);
+    expect(create).not.toHaveBeenCalled();
   });
 });

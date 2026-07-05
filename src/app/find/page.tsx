@@ -85,6 +85,7 @@ export default async function FindPage({
             query={query}
             view={view}
             wantedCount={wanted.items.length}
+            signedIn={Boolean(initialUser)}
           />
         </div>
       </main>

@@ -11,6 +11,8 @@ describe("FindShell tabs", () => {
   it("labels the wanted demand pipeline as Requests", () => {
     expect(source).toContain('{ k: "wanted", label: "Requests" }');
     expect(source).toContain("Requests are clips people want.");
+    expect(source).toContain("RequestClipForm");
+    expect(source).toContain('activeTab === "wanted"');
     expect(source).toContain("[scrollbar-width:none]");
     expect(source).toContain("hidden shrink-0 items-center gap-1 sm:flex");
     expect(source).not.toContain('{ k: "wanted", label: "Wanted" }');

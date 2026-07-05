@@ -10,6 +10,7 @@ import {
   CaretDown,
 } from "@phosphor-icons/react/dist/ssr";
 import { FeedCard, type FeedItem } from "./cards";
+import { RequestClipForm } from "./request-clip-form";
 
 /*
  * The interactive discovery chrome: search → /find?q=, tabs, a Filters panel, and a
@@ -45,12 +46,14 @@ export function FindShell({
   query,
   view,
   wantedCount,
+  signedIn,
 }: {
   items: FeedItem[];
   tab: string;
   query: string;
   view: "grid" | "list";
   wantedCount?: number;
+  signedIn: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -152,6 +155,12 @@ export function FindShell({
       <p className="mt-2 text-xs text-muted-foreground">
         {TAB_HELP[activeTab] ?? TAB_HELP.all}
       </p>
+
+      {activeTab === "wanted" && (
+        <div className="mt-4">
+          <RequestClipForm signedIn={signedIn} />
+        </div>
+      )}
 
       {/* Filters — a real toggle button + a grouped panel */}
       <div className="mt-4">

@@ -49,7 +49,16 @@ function PeerTubeBadge({ show }: { show: boolean }) {
       aria-label="PeerTube source"
       className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[0.55rem] font-medium text-white shadow-sm backdrop-blur"
     >
-      <Play weight="fill" className="size-2.5 text-sage" />
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="size-3"
+        focusable="false"
+      >
+        <path d="M9 4v8l7-4-7-4Z" fill="#f1680d" />
+        <path d="M9 12v8l7-4-7-4Z" fill="#000" />
+        <path d="M2 8v8l7-4-7-4Z" fill="#fff" />
+      </svg>
       PeerTube
     </span>
   );
