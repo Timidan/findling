@@ -17,6 +17,8 @@ import {
   MagicWand,
   MagnifyingGlass,
   Path,
+  Pause,
+  Play,
   Receipt,
   Scissors,
   SealCheck,
@@ -158,12 +160,14 @@ export function LandingX({
   const rootRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion() === true;
   const [me, setMe] = useState<Me | undefined>();
+  const [videoPaused, toggleVideoPaused] = useBackgroundVideoPause();
 
   useLandingMotion(rootRef, reduceMotion, priceMicroUsdc, split);
 
   const page = (
     <div ref={rootRef} className={`${display.variable} dark relative overflow-x-clip bg-background text-foreground`}>
-      <FixedBackdrop />
+      <FixedBackdrop videoPaused={videoPaused} />
+      <BackgroundVideoToggle videoPaused={videoPaused} onToggle={toggleVideoPaused} />
       <main className="relative z-10">
         <LandingHeader me={me} onAuthChange={setMe} />
         <Hero />
@@ -196,6 +200,37 @@ export function LandingX({
       {page}
     </ReactLenis>
   );
+}
+
+function useBackgroundVideoPause() {
+  const [videoPaused, setVideoPaused] = useState(false);
+
+  useEffect(() => {
+    const videos = document.querySelectorAll<HTMLVideoElement>("video[data-bg-video]");
+    for (const video of videos) {
+      if (videoPaused) {
+        video.pause();
+      } else {
+        void video.play().catch(() => undefined);
+      }
+    }
+  }, [videoPaused]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (event.key.toLowerCase() === "p") {
+        event.preventDefault();
+        setVideoPaused((paused) => !paused);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  return [videoPaused, () => setVideoPaused((paused) => !paused)] as const;
 }
 
 function useLandingMotion(
@@ -555,13 +590,14 @@ function LenisGsapBridge({ disabled }: { disabled: boolean }) {
   return null;
 }
 
-function FixedBackdrop() {
+function FixedBackdrop({ videoPaused }: { videoPaused: boolean }) {
   return (
     <div className="fixed inset-0 z-0 overflow-hidden" aria-hidden>
       <video
+        data-bg-video
         src={VIDEO}
         poster={POSTER}
-        autoPlay
+        autoPlay={!videoPaused}
         muted
         loop
         playsInline
@@ -573,6 +609,28 @@ function FixedBackdrop() {
       {/* left darkening so the story copy always has contrast over bright frames */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
     </div>
+  );
+}
+
+function BackgroundVideoToggle({
+  videoPaused,
+  onToggle,
+}: {
+  videoPaused: boolean;
+  onToggle: () => void;
+}) {
+  const Icon = videoPaused ? Play : Pause;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={videoPaused ? "Play background video" : "Pause background video"}
+      aria-pressed={videoPaused}
+      title={videoPaused ? "Play background video (P)" : "Pause background video (P)"}
+      className="fixed bottom-4 right-4 z-40 grid size-10 place-items-center rounded-full border border-white/15 bg-black/45 text-white shadow-2xl backdrop-blur-md transition-colors hover:bg-black/65 focus:outline-none focus:ring-2 focus:ring-white/50"
+    >
+      <Icon weight="bold" className="size-4" />
+    </button>
   );
 }
 
@@ -608,7 +666,7 @@ function LandingHeader({
           href="/wanted"
           className="hidden rounded-full px-3 py-1.5 text-sm text-white/70 transition-colors hover:text-white sm:inline"
         >
-          Wanted
+          Requests
         </Link>
         {me === null && (
           <Link
@@ -1282,7 +1340,7 @@ function FooterCTA({ me }: { me: Me | undefined }) {
               </p>
               <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/55">
                 <Link href="/studio" className="transition-colors hover:text-white">Studio</Link>
-                <Link href="/wanted" className="transition-colors hover:text-white">Wanted</Link>
+                <Link href="/wanted" className="transition-colors hover:text-white">Requests</Link>
                 {me === null && (
                   <Link href="/agents" className="transition-colors hover:text-white">For agents</Link>
                 )}

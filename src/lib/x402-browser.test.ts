@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  ARC_TESTNET_ADD_CHAIN_PARAMS,
   classifyGatewayReadiness,
+  isUnrecognizedChainError,
   microUsdcToDecimal,
 } from "./x402-browser";
 
@@ -54,5 +56,16 @@ describe("Gateway payment readiness", () => {
       shortfallMicroUsdc: BigInt(500_000),
       walletShortfallMicroUsdc: BigInt(400_000),
     });
+  });
+
+  it("has EIP-3085 Arc Testnet params for wallets that have not added the chain", () => {
+    expect(ARC_TESTNET_ADD_CHAIN_PARAMS).toMatchObject({
+      chainId: "0x4cef52",
+      chainName: "Arc Testnet",
+      rpcUrls: ["https://rpc.testnet.arc.network"],
+      blockExplorerUrls: ["https://testnet.arcscan.app"],
+    });
+    expect(isUnrecognizedChainError({ code: 4902 })).toBe(true);
+    expect(isUnrecognizedChainError(new Error("Unrecognized chain ID"))).toBe(true);
   });
 });

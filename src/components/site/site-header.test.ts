@@ -12,9 +12,9 @@ describe("SiteHeader navigation", () => {
     "utf8",
   );
 
-  it("keeps the global header focused on Studio, Wanted, and signed-out agent onboarding", () => {
+  it("keeps the global header focused on Studio, Requests, and signed-out agent onboarding", () => {
     expect(headerSource).toContain('{ href: "/studio", label: "Studio" }');
-    expect(headerSource).toContain('{ href: "/wanted", label: "Wanted" }');
+    expect(headerSource).toContain('{ href: "/wanted", label: "Requests" }');
     expect(headerSource).toContain('{ href: "/agents", label: "For agents", signedOutOnly: true }');
     expect(headerSource).toContain("item.signedOutOnly && me !== null");
     expect(headerSource).not.toContain('{ href: "/find", label: "Find" }');

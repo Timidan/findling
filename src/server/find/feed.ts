@@ -14,7 +14,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { db } from "../db/client";
-import { assets, momentEmbeddings, moments, users } from "../db/schema";
+import { assets, momentEmbeddings, moments, purchases, users } from "../db/schema";
 import {
   isLicensableMoment,
   TAKEDOWN_ASSET_STATUSES,
@@ -32,7 +32,7 @@ const MAX_FEED_LIMIT = 60;
 const WANTED_FETCH_LIMIT = 100;
 const PREVIEW_SIGNED_TTL_SECONDS = 60 * 15;
 
-export type FeedTab = "all" | "available" | "wanted";
+export type FeedTab = "all" | "available" | "wanted" | "trending";
 export type FeedSource = "upload" | "youtube" | "peertube";
 export type FeedUsageType =
   | "video_embed"
@@ -67,6 +67,8 @@ export interface AvailableFeedItem {
   durationMs: number;
   priceMicroUsdc: number;
   licence: string;
+  sourceType: FeedSource;
+  licenses: number;
   posterUrl: string | null;
   previewUrl: string;
 }
@@ -76,6 +78,7 @@ export interface WantedFeedItem {
   listingId: string;
   title: string;
   externalIdentity: string;
+  sourceType: FeedSource;
   sourceLicenceLabel: string | null;
   sourceThumbnailUrl: string | null;
   pledgedDemandMicroUsdc: number;
@@ -95,6 +98,7 @@ type AvailableQueryRow = {
     typeof users.$inferSelect,
     "username" | "displayName" | "walletAddress" | "email"
   >;
+  licenses: number;
 };
 
 type NormalizedFilters = {
@@ -168,6 +172,17 @@ function licenceLabel(summary: string | null): string {
   return value || "Standard";
 }
 
+function feedSource(value: string): FeedSource {
+  if (value === "youtube" || value === "peertube") return value;
+  return "upload";
+}
+
+function sourceFromExternalIdentityKind(kind: string): FeedSource {
+  if (kind === "peertube_channel") return "peertube";
+  if (kind === "youtube_channel") return "youtube";
+  return "upload";
+}
+
 function creatorLabel(creator: AvailableQueryRow["creator"]): string {
   if (creator.username) return creator.username;
   if (creator.displayName) return creator.displayName;
@@ -224,7 +239,7 @@ function availableSqlFilters(filters: NormalizedFilters, provider?: EmbeddingPro
     conditions.push(eq(moments.usageType, filters.usageType));
   }
   if (filters.source) {
-    conditions.push(sql`${assets.sourceType} = ${filters.source}`);
+    conditions.push(sql`${assets.sourceType}::text = ${filters.source}`);
   }
   if (filters.licence) {
     const labelMatch = ilike(moments.licenseSummary, `%${filters.licence}%`);
@@ -257,6 +272,12 @@ function baseAvailableSelect() {
       walletAddress: users.walletAddress,
       email: users.email,
     },
+    licenses: sql<number>`(
+      select count(*)::int
+      from ${purchases}
+      where ${purchases.momentId} = ${moments.id}
+        and ${purchases.status} = 'settled'
+    )`,
   };
 }
 
@@ -352,8 +373,8 @@ async function availableItemsFromRows(
   );
   const previewKeys = eligibleRows.map((row) => row.moment.previewStorageKey!);
   // Poster is a separate still image (poster_storage_key, a .jpg) — NOT the
-  // licensed clip. Signing it publicly is safe and intended; the <img> in the
-  // card needs an image, not the preview .mp4.
+  // licensed clip. Signing it publicly is safe and intended; the card thumbnail
+  // needs an image, not the preview .mp4.
   const posterKeys = eligibleRows
     .map((row) => row.moment.posterStorageKey)
     .filter((key): key is string => !!key);
@@ -380,6 +401,8 @@ async function availableItemsFromRows(
         durationMs: row.moment.durationMs,
         priceMicroUsdc: row.moment.priceMicroUsdc,
         licence: licenceLabel(row.moment.licenseSummary),
+        sourceType: feedSource(String(row.asset.sourceType)),
+        licenses: Number(row.licenses ?? 0),
         posterUrl,
         previewUrl,
       },
@@ -425,10 +448,11 @@ function matchesWantedQuery(
 }
 
 async function getWantedFeed(
-  opts: Pick<UnifiedFeedOptions, "query" | "limit"> = {},
+  opts: Pick<UnifiedFeedOptions, "query" | "limit" | "filters"> = {},
 ): Promise<WantedFeedItem[]> {
   const limit = clampFeedLimit(opts.limit);
   const query = normalizeQuery(opts.query);
+  const filters = normalizeFilters(opts.filters);
   const { listings } = await listListings({
     audience: "public",
     limit: WANTED_FETCH_LIMIT,
@@ -436,12 +460,17 @@ async function getWantedFeed(
 
   return listings
     .filter((listing) => matchesWantedQuery(listing, query))
+    .filter((listing) => {
+      if (!filters.source) return true;
+      return sourceFromExternalIdentityKind(listing.externalIdentityKind) === filters.source;
+    })
     .slice(0, limit)
     .map((listing) => ({
       kind: "wanted" as const,
       listingId: listing.id,
       title: listing.title,
       externalIdentity: listing.externalIdentity,
+      sourceType: sourceFromExternalIdentityKind(listing.externalIdentityKind),
       sourceLicenceLabel: listing.sourceLicenceLabel,
       sourceThumbnailUrl: listing.sourceThumbnailUrl,
       pledgedDemandMicroUsdc: listing.pledgedDemandMicroUsdc,
@@ -479,6 +508,25 @@ function mergeDemandFirst(
   return out;
 }
 
+function trendingScore(item: FeedItem): number {
+  return item.kind === "available" ? item.licenses : item.pledgeCount;
+}
+
+async function getTrendingFeed(
+  opts: UnifiedFeedOptions,
+  limit: number,
+): Promise<FeedItem[]> {
+  const fetchLimit = Math.min(Math.max(limit * 2, limit), MAX_FEED_LIMIT);
+  const [wanted, available] = await Promise.all([
+    getWantedFeed({ query: opts.query, filters: opts.filters, limit: fetchLimit }),
+    getLicensableFeed({ ...opts, limit: fetchLimit }),
+  ]);
+
+  return [...available, ...wanted]
+    .sort((a, b) => trendingScore(b) - trendingScore(a))
+    .slice(0, limit);
+}
+
 export async function getUnifiedFeed(
   opts: UnifiedFeedOptions = {},
 ): Promise<UnifiedFeedResult> {
@@ -489,11 +537,14 @@ export async function getUnifiedFeed(
     return { items: await getLicensableFeed({ ...opts, limit }) };
   }
   if (tab === "wanted") {
-    return { items: await getWantedFeed({ query: opts.query, limit }) };
+    return { items: await getWantedFeed({ query: opts.query, filters: opts.filters, limit }) };
+  }
+  if (tab === "trending") {
+    return { items: await getTrendingFeed(opts, limit) };
   }
 
   const [wanted, available] = await Promise.all([
-    getWantedFeed({ query: opts.query, limit }),
+    getWantedFeed({ query: opts.query, filters: opts.filters, limit }),
     getLicensableFeed({ ...opts, limit }),
   ]);
   return { items: mergeDemandFirst(wanted, available, limit) };

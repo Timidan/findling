@@ -10,7 +10,7 @@ describe("plain language product copy", () => {
   it("uses action-first language on discovery and checkout", () => {
     expect(source("src/app/find/page.tsx")).toContain("Find video clips you can use.");
     expect(source("src/app/find/page.tsx")).toContain(
-      "Available clips are ready to use now. Wanted clips are requests creators can claim and get paid for.",
+      "Available clips are ready to use now. Requests are clips people want creators to upload.",
     );
     expect(source("src/components/find/cards.tsx")).toContain("Use clip");
     expect(source("src/components/find/cards.tsx")).toContain("Claim request");

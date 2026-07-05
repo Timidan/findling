@@ -16,7 +16,7 @@ import { ConnectWallet, type Me } from "@/components/auth/connect-wallet";
 
 const NAV: { href: string; label: string; signedOutOnly?: boolean }[] = [
   { href: "/studio", label: "Studio" },
-  { href: "/wanted", label: "Wanted" },
+  { href: "/wanted", label: "Requests" },
   { href: "/agents", label: "For agents", signedOutOnly: true },
 ];
 

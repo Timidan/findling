@@ -31,11 +31,24 @@ import { arcTestnet } from "viem/chains";
 const ARC_TESTNET_CHAIN_ID = 5042002;
 const ARC_TESTNET_NETWORK = "eip155:5042002";
 const GATEWAY_AUTH_VALIDITY_WINDOW_SECONDS = 604_900;
+const ARC_TESTNET_RPC_URL = "https://rpc.testnet.arc.network";
 
 const ARC_USDC = "0x3600000000000000000000000000000000000000" as const;
 const GATEWAY_WALLET = "0x0077777d7EBA4688BDeF3E311b846F25870A19B9" as const;
 const MICRO_USDC = BigInt(1_000_000);
 const ZERO_MICRO_USDC = BigInt(0);
+
+export const ARC_TESTNET_ADD_CHAIN_PARAMS = {
+  chainId: "0x4cef52",
+  chainName: "Arc Testnet",
+  nativeCurrency: {
+    name: "USDC",
+    symbol: "USDC",
+    decimals: 18,
+  },
+  rpcUrls: [ARC_TESTNET_RPC_URL],
+  blockExplorerUrls: ["https://testnet.arcscan.app"],
+} as const;
 
 const transferWithAuthorizationTypes = {
   TransferWithAuthorization: [
@@ -121,6 +134,49 @@ export function formatMicroUsdcBalance(value: bigint): string {
   return formatUnits(value, 6);
 }
 
+export function isUnrecognizedChainError(error: unknown): boolean {
+  const code = (error as { code?: unknown })?.code;
+  const nestedCode = (error as { data?: { originalError?: { code?: unknown } } })
+    ?.data?.originalError?.code;
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    code === 4902 ||
+    nestedCode === 4902 ||
+    /4902|unrecognized chain|chain has not been added|unknown chain/i.test(message)
+  );
+}
+
+async function addArcTestnet(walletClient: WalletClient): Promise<void> {
+  const client = walletClient as unknown as {
+    request(args: {
+      method: "wallet_addEthereumChain";
+      params: [typeof ARC_TESTNET_ADD_CHAIN_PARAMS];
+    }): Promise<unknown>;
+  };
+  await client.request({
+    method: "wallet_addEthereumChain",
+    params: [ARC_TESTNET_ADD_CHAIN_PARAMS],
+  });
+}
+
+export async function ensureArcTestnet(
+  walletClient: WalletClient,
+  onStatus?: StatusReporter,
+): Promise<void> {
+  onStatus?.("Switching to Arc Testnet.");
+  try {
+    await walletClient.switchChain({ id: arcTestnet.id });
+    return;
+  } catch (error) {
+    if (!isUnrecognizedChainError(error)) throw error;
+  }
+
+  onStatus?.("Adding Arc Testnet to your wallet.");
+  await addArcTestnet(walletClient);
+  onStatus?.("Switching to Arc Testnet.");
+  await walletClient.switchChain({ id: arcTestnet.id });
+}
+
 export function classifyGatewayReadiness(
   input: GatewayReadinessInput,
 ): GatewayReadiness {
@@ -174,7 +230,7 @@ export async function getGatewayPaymentReadiness(input: {
 }): Promise<GatewayReadiness> {
   const publicClient = createPublicClient({
     chain: arcTestnet,
-    transport: http("https://rpc.testnet.arc.network"),
+    transport: http(ARC_TESTNET_RPC_URL),
   });
 
   const [walletMicroUsdc, allowanceMicroUsdc, gatewayAvailableMicroUsdc] =
@@ -388,12 +444,11 @@ export async function depositGatewayUsdc(input: {
   depositor?: Address;
   onStatus?: StatusReporter;
 }) {
-  input.onStatus?.("Switching to Arc testnet.");
-  await input.walletClient.switchChain({ id: arcTestnet.id });
+  await ensureArcTestnet(input.walletClient, input.onStatus);
 
   const publicClient = createPublicClient({
     chain: arcTestnet,
-    transport: http("https://rpc.testnet.arc.network"),
+    transport: http(ARC_TESTNET_RPC_URL),
   });
 
   const amount = parseUnits(input.amountUsdc, 6);

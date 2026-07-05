@@ -27,7 +27,7 @@ function TypeChip({ kind }: { kind: "available" | "wanted" }) {
         kind === "available" ? "bg-sage/15 text-sage" : "bg-secondary text-muted-foreground"
       }`}
     >
-      {kind === "available" ? "Available" : "Wanted"}
+      {kind === "available" ? "Available" : "Request"}
     </span>
   );
 }
@@ -38,6 +38,31 @@ function LicenceBadge({ label }: { label: string | null }) {
     <span className="inline-flex items-center gap-0.5 text-[0.65rem] text-muted-foreground">
       <SealCheck weight="fill" className="size-3 text-sage" />
       {label}
+    </span>
+  );
+}
+
+function PeerTubeBadge({ show }: { show: boolean }) {
+  if (!show) return null;
+  return (
+    <span
+      aria-label="PeerTube source"
+      className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[0.55rem] font-medium text-white shadow-sm backdrop-blur"
+    >
+      <Play weight="fill" className="size-2.5 text-sage" />
+      PeerTube
+    </span>
+  );
+}
+
+function PaidCountBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      aria-label={`${count} paid uses`}
+      className="absolute right-1.5 top-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[0.55rem] font-semibold tabular text-primary-foreground shadow-sm"
+    >
+      {count} paid
     </span>
   );
 }
@@ -65,6 +90,8 @@ function AvailableCard({ item }: { item: AvailableFeedItem }) {
           weight="fill"
           className="absolute inset-0 m-auto size-6 text-white/75 transition-transform group-hover:scale-110"
         />
+        <PeerTubeBadge show={item.sourceType === "peertube"} />
+        {item.licenses > 0 && <PaidCountBadge count={item.licenses} />}
         <span className="tabular absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-[0.55rem] font-medium text-white">
           {(item.durationMs / 1000).toFixed(1)}s
         </span>
@@ -79,7 +106,14 @@ function AvailableCard({ item }: { item: AvailableFeedItem }) {
         </h3>
         <p className="mt-1 truncate text-xs text-muted-foreground">{item.who}</p>
         <div className="mt-auto flex items-center justify-between gap-2 pt-2.5">
-          <UsdcAmount micro={item.priceMicroUsdc} className="tabular gap-0.5 text-sm font-semibold" />
+          <span className="flex min-w-0 items-center gap-2">
+            <UsdcAmount micro={item.priceMicroUsdc} className="tabular gap-0.5 text-sm font-semibold" />
+            {item.licenses > 0 && (
+              <span className="tabular text-[0.65rem] text-muted-foreground">
+                {item.licenses} paid
+              </span>
+            )}
+          </span>
           <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
             Use clip
           </span>
@@ -112,6 +146,7 @@ function WantedCard({ item }: { item: WantedFeedItem }) {
             className="absolute inset-0 size-full object-cover"
           />
         )}
+        <PeerTubeBadge show={item.sourceType === "peertube"} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2">

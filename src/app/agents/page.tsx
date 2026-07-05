@@ -88,7 +88,7 @@ export default async function AgentsPage() {
             href="/wanted"
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-secondary/60"
           >
-            Browse the Wanted board
+            Browse Requests
           </Link>
         </div>
       </main>

@@ -23,7 +23,7 @@ export function SiteFooter({ className }: { className?: string }) {
             Studio
           </Link>
           <Link href="/wanted" className="transition-colors hover:text-foreground">
-            Wanted
+            Requests
           </Link>
           <Link href="/earnings" className="transition-colors hover:text-foreground">
             Earnings

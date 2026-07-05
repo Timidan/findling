@@ -20,14 +20,14 @@ import { FeedCard, type FeedItem } from "./cards";
 const TABS = [
   { k: "all", label: "All" },
   { k: "available", label: "Available" },
-  { k: "wanted", label: "Wanted" },
+  { k: "wanted", label: "Requests" },
   { k: "trending", label: "Trending" },
 ] as const;
 
 const TAB_HELP: Record<string, string> = {
   all: "Browse clips ready to use and requests creators can fulfill.",
   available: "These clips are ready to use now after payment.",
-  wanted: "These are requests. Creators can claim them, upload the clip, and get paid.",
+  wanted: "Requests are clips people want. Creators can claim them, upload the clip, and get paid.",
   trending: "Clips and requests getting attention right now.",
 };
 
@@ -121,7 +121,7 @@ export function FindShell({
       </form>
 
       <div className="mt-5 flex items-center justify-between gap-3 border-b border-border">
-        <div className="-mb-px flex items-center gap-1 overflow-x-auto">
+        <div className="-mb-px flex items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {TABS.map(({ k, label }) => {
             const active = activeTab === k;
             return (
@@ -140,7 +140,7 @@ export function FindShell({
             );
           })}
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="hidden shrink-0 items-center gap-1 sm:flex">
           <button type="button" aria-label="Grid view" onClick={() => go({ view: null })} className={`grid size-8 place-items-center rounded-lg ${view !== "list" ? "bg-secondary text-foreground" : "text-muted-foreground"}`}>
             <SquaresFour weight={view !== "list" ? "fill" : "regular"} className="size-4" />
           </button>

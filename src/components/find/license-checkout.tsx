@@ -25,6 +25,7 @@ import {
   purchaseMomentLicense,
   depositGatewayUsdc,
   getGatewayPaymentReadiness,
+  ensureArcTestnet,
   formatMicroUsdcBalance,
   microUsdcToDecimal,
   type GatewayReadiness,
@@ -288,8 +289,7 @@ export function LicenseCheckout({
     setError(null);
     try {
       const { walletClient } = await getWallet();
-      setStatus("Switching to Arc Testnet.");
-      await walletClient.switchChain({ id: arcTestnet.id });
+      await ensureArcTestnet(walletClient, setStatus);
       setStatus("Checking payment setup.");
       const { setup } = await inspectPaymentSetup({
         requiredMicroUsdc: moment.priceMicroUsdc,

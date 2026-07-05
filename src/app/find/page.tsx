@@ -25,7 +25,7 @@ const getUnifiedFeedCached = unstable_cache(
 export const metadata: Metadata = {
   title: "Find video clips you can use · Findling",
   description:
-    "Search by scene, vibe, or use case. Available clips are ready to use now. Wanted clips are requests creators can claim and get paid for.",
+    "Search by scene, vibe, or use case. Available clips are ready to use now. Requests are clips people want creators to upload.",
 };
 
 function one(v: string | string[] | undefined): string | undefined {
@@ -46,7 +46,9 @@ export default async function FindPage({
   const sp = await searchParams;
   const tabParam = one(sp.tab);
   const tab: FeedTab =
-    tabParam === "available" || tabParam === "wanted" ? tabParam : "all";
+    tabParam === "available" || tabParam === "wanted" || tabParam === "trending"
+      ? tabParam
+      : "all";
   // Clamp the public search query before it flows into the feed / embedding path
   // (unbounded text would otherwise reach the paid embedding provider).
   const query = (one(sp.q) ?? "").trim().slice(0, 120);
@@ -74,7 +76,7 @@ export default async function FindPage({
         </h1>
         <p className="mt-2 max-w-xl text-sm text-muted-foreground">
           Search by scene, vibe, or use case. Available clips are ready to use now.
-          Wanted clips are requests creators can claim and get paid for.
+          Requests are clips people want creators to upload.
         </p>
         <div className="mt-6">
           <FindShell

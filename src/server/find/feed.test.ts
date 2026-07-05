@@ -80,6 +80,7 @@ type AvailableRow = {
     walletAddress: string | null;
     email: string | null;
   };
+  licenses: number;
 };
 
 const vector = Array.from({ length: EMBEDDING_DIMENSIONS }, (_, i) =>
@@ -158,6 +159,7 @@ function availableRow(
       email: "creator@example.com",
       ...overrides.creator,
     },
+    licenses: 0,
   };
 }
 
@@ -226,6 +228,8 @@ describe("getLicensableFeed", () => {
         durationMs: 12_000,
         priceMicroUsdc: 250_000,
         licence: "CC BY",
+        sourceType: "upload",
+        licenses: 0,
         posterUrl: "https://poster.example/posters/ok.jpg",
         previewUrl: "https://preview.example/previews/ok.mp4",
       },
@@ -362,12 +366,31 @@ describe("getUnifiedFeed", () => {
         listingId: listing.id,
         title: listing.title,
         externalIdentity: listing.externalIdentity,
+        sourceType: "peertube",
         sourceLicenceLabel: listing.sourceLicenceLabel,
         sourceThumbnailUrl: listing.sourceThumbnailUrl,
         pledgedDemandMicroUsdc: listing.pledgedDemandMicroUsdc,
         pledgeCount: listing.pledgeCount,
       })),
     });
+  });
+
+  it("returns Trending ranked by paid uses and request demand", async () => {
+    const rows = [
+      { ...availableRow("quiet"), licenses: 1 },
+      { ...availableRow("hot"), licenses: 9 },
+    ];
+    signRows(rows);
+    queueRows(rows);
+
+    const result = await getUnifiedFeed({ tab: "trending", limit: 4 });
+
+    expect(result.items.map((item) => ("listingId" in item ? item.listingId : item.id))).toEqual([
+      "hot",
+      "wanted-1",
+      "wanted-2",
+      "wanted-3",
+    ]);
   });
 
   it("merges All demand-first with Wanted weighted ahead of Available", async () => {
@@ -403,6 +426,7 @@ describe("getUnifiedFeed", () => {
           listingId: "wanted-2",
           title: "Clean ace clutch reaction",
           externalIdentity: "karate_kombat",
+          sourceType: "peertube",
           sourceLicenceLabel: "CC BY",
           sourceThumbnailUrl: "https://peertube.example/lazy-static/thumbnails/wanted-2.jpg",
           pledgedDemandMicroUsdc: 310_000,

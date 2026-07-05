@@ -12,7 +12,7 @@ function shortAddr(a: string | null): string | null {
 
 /**
  * The creator console shell: persistent Studio navigation plus the global
- * header, so Studio pages can still reach Wanted and account actions.
+ * header, so Studio pages can still reach Requests and account actions.
  */
 export default async function StudioLayout({
   children,
