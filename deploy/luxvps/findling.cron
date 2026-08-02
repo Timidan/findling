@@ -1,0 +1,14 @@
+# Findling destination scheduler template (UTC). This file is a template only;
+# do not install it until the migration runbook's scheduler gate is approved.
+# Disable the source scheduler before enabling these lines. Both jobs use the
+# same non-blocking lock, so reconcile and cleanup cannot overlap on this host.
+# These are five-field lines for the `agentops` user crontab (add the username
+# column if an operator chooses to place them under /etc/cron.d).
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+CRON_TZ=UTC
+
+# Compose is deliberately invoked from the destination deployment directory.
+# `ops` is the Compose profile containing one-shot maintenance services.
+*/15 * * * * cd /home/agentops/findling/deploy/luxvps && /usr/bin/flock -n /home/agentops/findling/deploy/luxvps/logs/scheduler.lock /usr/bin/env FINDLING_ENV_FILE=/home/agentops/findling/deploy/luxvps/findling.env docker compose --env-file /home/agentops/findling/deploy/luxvps/findling.env --profile ops run --rm reconcile >> /home/agentops/findling/deploy/luxvps/logs/reconcile.log 2>&1
+17 4 * * * cd /home/agentops/findling/deploy/luxvps && /usr/bin/flock -n /home/agentops/findling/deploy/luxvps/logs/scheduler.lock /usr/bin/env FINDLING_ENV_FILE=/home/agentops/findling/deploy/luxvps/findling.env docker compose --env-file /home/agentops/findling/deploy/luxvps/findling.env --profile ops run --rm cleanup >> /home/agentops/findling/deploy/luxvps/logs/cleanup.log 2>&1

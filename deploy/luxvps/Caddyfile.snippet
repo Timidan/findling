@@ -1,0 +1,15 @@
+# Import this site block into the destination Caddy configuration.
+# The upstream name is the Compose service on the shared public_proxy network.
+findling.timidan.xyz {
+	request_body {
+		max_size 80MB
+	}
+
+	reverse_proxy findling:3000 {
+		transport http {
+			dial_timeout 180s
+			read_timeout 180s
+			write_timeout 180s
+		}
+	}
+}

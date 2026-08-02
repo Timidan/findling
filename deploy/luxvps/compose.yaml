@@ -1,0 +1,81 @@
+name: findling
+
+x-findling-runtime: &findling-runtime
+  image: ${FINDLING_IMAGE_REF:?FINDLING_IMAGE_REF must be set}
+  env_file:
+    - ${FINDLING_ENV_FILE:-./findling.env}
+  environment:
+    NODE_ENV: production
+    FINDLING_IMAGE_REF: ${FINDLING_IMAGE_REF:?FINDLING_IMAGE_REF must be set}
+  read_only: true
+  tmpfs:
+    - /run:rw,nosuid,nodev,noexec,size=16m
+    - /tmp:rw,nosuid,nodev,noexec,size=256m
+  volumes:
+    - findling_data:/var/lib/findling
+    - findling_next_cache:/app/.next/cache
+    - findling_clips:/tmp/findling-clips
+  networks:
+    public_proxy:
+      aliases:
+        - findling
+    private: {}
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  pids_limit: 512
+  mem_limit: 2g
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  findling:
+    <<: *findling-runtime
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:3000/api/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  validate:
+    <<: *findling-runtime
+    profiles: [ops]
+    restart: "no"
+    command:
+      - /bin/bash
+      - -euc
+      - |
+        if [[ ! "$FINDLING_IMAGE_REF" =~ ^([^@[:space:]]+@sha256:[0-9a-f]{64}|sha256:[0-9a-f]{64})$ ]]; then
+          echo "validate requires an immutable image reference" >&2
+          exit 64
+        fi
+        exec pnpm run deploy:check
+
+  reconcile:
+    <<: *findling-runtime
+    profiles: [ops]
+    restart: "no"
+    command: ["pnpm", "exec", "tsx", "scripts/reconcile-all.ts"]
+
+  cleanup:
+    <<: *findling-runtime
+    profiles: [ops]
+    restart: "no"
+    command: ["pnpm", "exec", "tsx", "scripts/cleanup.ts"]
+
+networks:
+  public_proxy:
+    external: true
+  private:
+    driver: bridge
+
+volumes:
+  findling_data:
+  findling_next_cache:
+  findling_clips:

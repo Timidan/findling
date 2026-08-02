@@ -71,3 +71,7 @@ src/app/prototype/clip-timeline/NOTES.md
 .claude/
 .impeccable/
 .vscode/
+
+# LuxVPS deployment secret and runtime artifacts
+/deploy/luxvps/findling.env
+/deploy/luxvps/logs/
