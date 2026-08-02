@@ -22,6 +22,21 @@ RUN apt-get update \
       yt-dlp \
     && rm -rf /var/lib/apt/lists/*
 
+# Ubuntu 24.04 currently ships a yt-dlp release that YouTube no longer accepts.
+# Install a reviewed upstream release over the distro entrypoint and verify the
+# exact asset before it enters the immutable runtime image. Keep the distro
+# package above because it supplies the Python runtime and supporting modules.
+RUN set -eux; \
+    yt_dlp_version=2026.07.04; \
+    yt_dlp_sha256=495be29ff4d9d4e9be7eabdfef225221e5d5282e77f2f505abc6dca80349f3fd; \
+    curl --fail --silent --show-error --location \
+      "https://github.com/yt-dlp/yt-dlp/releases/download/${yt_dlp_version}/yt-dlp" \
+      --output /tmp/yt-dlp; \
+    printf '%s  %s\n' "$yt_dlp_sha256" /tmp/yt-dlp | sha256sum --check --status; \
+    install --mode=0755 /tmp/yt-dlp /usr/local/bin/yt-dlp; \
+    rm -f /tmp/yt-dlp; \
+    test "$(yt-dlp --version)" = "$yt_dlp_version"
+
 RUN test "$(ffmpeg -version | sed -n '1s/^ffmpeg version \([0-9][0-9]*\)\..*/\1/p')" = "6" \
     && command -v ffprobe \
     && command -v yt-dlp \
